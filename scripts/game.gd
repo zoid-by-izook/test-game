@@ -6,6 +6,14 @@ extends Node3D
 const PLAYER_SCENE: PackedScene = preload("res://scenes/player.tscn")
 const COIN_SCENE: PackedScene = preload("res://scenes/coin.tscn")
 const GOAL_SCENE: PackedScene = preload("res://scenes/goal.tscn")
+## Quaternius grass blocks, scaled to each platform's size. Collision stays
+## an exact box. The ground uses the flat "Center" tile (top face only —
+## the camera never sees its sides); floating platforms use the closed
+## "Single" cube so they look right from every angle.
+const GROUND_MODEL: PackedScene = preload("res://assets/quaternius/Cube_Grass_Center.gltf")
+const PLATFORM_MODEL: PackedScene = preload("res://assets/quaternius/Cube_Grass_Single.gltf")
+## Cube_Grass_Single measures ~2.23 x 2.0 x 2.23 units.
+const PLATFORM_BASE_SIZE := Vector3(2.23, 2.0, 2.23)
 
 const SPAWN := Vector3(0.0, 1.5, 6.0)
 const KILL_Y := -12.0
@@ -97,14 +105,11 @@ func _process(_delta: float) -> void:
 
 
 func _build_level() -> void:
-	var ground_mat := _make_material(Color(0.32, 0.33, 0.36))
-	var plat_mat := _make_material(Color(0.55, 0.56, 0.60))
-
-	_add_platform(Vector3(0, -0.5, 0), Vector3(60, 1, 60), ground_mat)
-	_add_platform(Vector3(0, 1.0, -8), Vector3(5, 0.6, 5), plat_mat)
-	_add_platform(Vector3(6, 2.5, -12), Vector3(4, 0.6, 4), plat_mat)
-	_add_platform(Vector3(0, 4.0, -16), Vector3(4, 0.6, 4), plat_mat)
-	_add_platform(Vector3(-6, 5.5, -20), Vector3(5, 0.6, 5), plat_mat)
+	_add_platform(Vector3(0, -0.5, 0), Vector3(60, 1, 60), true)
+	_add_platform(Vector3(0, 1.0, -8), Vector3(5, 0.6, 5))
+	_add_platform(Vector3(6, 2.5, -12), Vector3(4, 0.6, 4))
+	_add_platform(Vector3(0, 4.0, -16), Vector3(4, 0.6, 4))
+	_add_platform(Vector3(-6, 5.5, -20), Vector3(5, 0.6, 5))
 
 	var coin_spots: Array[Vector3] = [
 		Vector3(3, 1.2, -4),
@@ -127,28 +132,23 @@ func _build_level() -> void:
 	add_child(goal)
 
 
-func _add_platform(pos: Vector3, size: Vector3, mat: Material) -> void:
+func _add_platform(pos: Vector3, size: Vector3, is_ground := false) -> void:
 	var body := StaticBody3D.new()
 	body.position = pos
 	var collision := CollisionShape3D.new()
 	var box_shape := BoxShape3D.new()
 	box_shape.size = size
 	collision.shape = box_shape
-	var mesh_instance := MeshInstance3D.new()
-	var box_mesh := BoxMesh.new()
-	box_mesh.size = size
-	box_mesh.material = mat
-	mesh_instance.mesh = box_mesh
+	var model: Node3D
+	if is_ground:
+		model = GROUND_MODEL.instantiate()
+		model.scale = size / 2.0
+	else:
+		model = PLATFORM_MODEL.instantiate()
+		model.scale = size / PLATFORM_BASE_SIZE
 	body.add_child(collision)
-	body.add_child(mesh_instance)
+	body.add_child(model)
 	add_child(body)
-
-
-func _make_material(color: Color) -> StandardMaterial3D:
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = color
-	mat.roughness = 0.9
-	return mat
 
 
 func _on_coin_collected(_coin: Coin) -> void:

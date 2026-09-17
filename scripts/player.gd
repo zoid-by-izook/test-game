@@ -13,6 +13,9 @@ var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 ## but ignores all movement input.
 var controls_enabled := false
 
+## AnimationPlayer inside the imported Quaternius character model.
+@onready var _anim: AnimationPlayer = $CharacterModel.find_child("AnimationPlayer")
+
 
 func _physics_process(delta: float) -> void:
 	if not is_on_floor():
@@ -36,3 +39,16 @@ func _physics_process(delta: float) -> void:
 		velocity.z = move_toward(velocity.z, 0.0, speed * 8.0 * delta)
 
 	move_and_slide()
+	_update_animation(input_dir)
+
+
+## Picks the character clip from the movement state. Guards on
+## current_animation so clips aren't restarted every physics frame.
+func _update_animation(input_dir: Vector2) -> void:
+	var next_anim := "Idle"
+	if not is_on_floor():
+		next_anim = "Jump" if velocity.y > 1.0 else "Jump_Idle"
+	elif input_dir.length() > 0.01:
+		next_anim = "Run"
+	if _anim.current_animation != next_anim:
+		_anim.play(next_anim)

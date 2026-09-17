@@ -14,9 +14,14 @@ signal start_requested
 
 const CREDITS: Array = [
 	{
-		"title": "Everything on screen",
-		"artist": "Zoid (programmer art)",
-		"license": "All original — no third-party assets yet",
+		"title": "Ultimate Platformer Pack (character, coins, platforms, flag)",
+		"artist": "Quaternius",
+		"license": "CC0 1.0 Universal",
+	},
+	{
+		"title": "Game code & level design",
+		"artist": "Zoid",
+		"license": "All original",
 	},
 ]
 

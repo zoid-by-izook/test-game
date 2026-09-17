@@ -51,8 +51,11 @@ GitHub Actions.** After that, pushes to `main` go live on their own.
 
 ## Credits
 
-No third-party assets yet — everything on screen is original programmer art by
-Zoid. As licensed assets are added, each artist, asset, and license will be
+- **Ultimate Platformer Pack** (character, coins, platforms, flag) by
+  [Quaternius](https://quaternius.com) — CC0 1.0 Universal
+- Game code & level design by Zoid — all original
+
+As licensed assets are added, each artist, asset, and license will be
 credited here, in the in-game credits menu (Credits button on the title
 screen), and on the website.
 

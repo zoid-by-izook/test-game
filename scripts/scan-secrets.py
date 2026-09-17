@@ -71,6 +71,10 @@ SELF = os.path.basename(__file__)
 # High-entropy detection tuning.
 ENTROPY_MIN_LEN = 24
 ENTROPY_THRESHOLD = 4.5
+# Data URIs embed file content (e.g. base64 mesh buffers in .gltf 3D models).
+# Their payloads are not secrets: exempt them from the entropy heuristic.
+# L1/L2 pattern checks still run on the full line.
+DATA_URI = re.compile(r"data:[^;,]+;base64,[A-Za-z0-9+/=\s]+")
 ENTROPY_TOKEN = re.compile(r"[A-Za-z0-9+/=_-]{24,}")
 
 
@@ -106,7 +110,7 @@ def scan_file(path: str):
                     if looks_placeholder(val):
                         continue
                 findings.append((path, i, name, hit[:60]))
-        for tok in ENTROPY_TOKEN.finditer(line):
+        for tok in ENTROPY_TOKEN.finditer(DATA_URI.sub("", line)):
             t = tok.group(0).strip("=_-")
             if len(t) >= ENTROPY_MIN_LEN and shannon(t) >= ENTROPY_THRESHOLD:
                 if re.fullmatch(r"[0-9a-fA-F-]{32,}", t):
