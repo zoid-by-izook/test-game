@@ -1,0 +1,28 @@
+[gd_resource type="Sky" load_steps=7 format=3]
+
+[ext_resource type="Shader" path="res://assets/sky/stylized_sky.gdshader" id="1_sky"]
+[ext_resource type="Texture2D" path="res://assets/sky/cloud_shape.png" id="2_shape"]
+[ext_resource type="Texture2D" path="res://assets/sky/cloud_noise.png" id="3_noise"]
+[ext_resource type="Texture2D" path="res://assets/sky/cloud_curves.png" id="4_curves"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_sky"]
+render_priority = 0
+shader = ExtResource("1_sky")
+shader_parameter/top_color = Color(0.2, 0.52, 1, 1)
+shader_parameter/bottom_color = Color(0.74, 0.9, 1, 1)
+shader_parameter/sun_scatter = Color(1, 0.85, 0.6, 1)
+shader_parameter/sun_color = Color(1, 0.97, 0.88, 1)
+shader_parameter/sun_size = 0.99965
+shader_parameter/cloud_shape_sampler = ExtResource("2_shape")
+shader_parameter/cloud_noise_sampler = ExtResource("3_noise")
+shader_parameter/cloud_curves = ExtResource("4_curves")
+shader_parameter/clouds_samples = 16
+shader_parameter/shadow_sample = 4
+shader_parameter/clouds_density = 0.7
+shader_parameter/clouds_scale = 1.0
+shader_parameter/clouds_smoothness = 0.035
+shader_parameter/clouds_light_color = Color(1, 1, 1, 1)
+shader_parameter/clouds_shadow_intensity = 1.0
+
+[resource]
+sky_material = SubResource("ShaderMaterial_sky")
