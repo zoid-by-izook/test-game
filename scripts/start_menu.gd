@@ -18,6 +18,11 @@ const CREDITS: Array = [
 		"artist": "Quaternius",
 		"license": "CC0 1.0 Universal",
 	},
+	{
+		"title": "Stylized Sky shader (adapted for this game's daytime sky)",
+		"artist": "GDQuest",
+		"license": "MIT",
+	},
 ]
 
 
