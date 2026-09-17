@@ -1,0 +1,27 @@
+name: Auto-close outsider issues
+
+# The issue tracker is the maintainers' personal roadmap: only Zoid
+# (zoid-by-izook) and Isaac (Izook) open issues here. Anything else gets
+# auto-closed with a friendly note.
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  autoclose:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Close issues not opened by the maintainers
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AUTHOR: ${{ github.event.issue.user.login }}
+          ISSUE: ${{ github.event.issue.number }}
+        run: |
+          if [ "$AUTHOR" = "zoid-by-izook" ] || [ "$AUTHOR" = "Izook" ]; then
+            echo "Issue #$ISSUE opened by $AUTHOR — leaving open."
+            exit 0
+          fi
+          gh issue close "$ISSUE" --reason "not planned" --comment \
+            "Auto-closing: this issue tracker is the maintainers' personal roadmap, so only @zoid-by-izook and @Izook open issues here. Thanks for understanding!"
