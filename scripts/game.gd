@@ -160,13 +160,12 @@ func _add_platform(pos: Vector3, size: Vector3) -> void:
 	add_child(body)
 
 
-## Builds the island: a MultiMesh of grass cubes in stepped circular layers
-## plus one StaticBody3D with a collision box per top-layer cube.
+## Builds the island: grass cubes in stepped circular layers merged into a
+## single ArrayMesh (one draw call, no instancing — MultiMesh hangs
+## SwiftShader's WebGL2 during boot) plus one StaticBody3D with a collision
+## box per top-layer cube.
 func _build_island() -> void:
 	var cube_mesh := _extract_mesh(ISLAND_MODEL)
-	var multimesh := MultiMesh.new()
-	multimesh.transform_format = MultiMesh.TRANSFORM_3D
-	multimesh.mesh = cube_mesh
 	var transforms: Array[Transform3D] = []
 	var body := StaticBody3D.new()
 	body.name = "IslandBody"
@@ -193,12 +192,21 @@ func _build_island() -> void:
 					shape.shape = box
 					shape.position = cube_pos
 					body.add_child(shape)
-	multimesh.instance_count = transforms.size()
-	for i in transforms.size():
-		multimesh.set_instance_transform(i, transforms[i])
-	var visual := MultiMeshInstance3D.new()
+	# Merge the cube mesh into a single ArrayMesh (one draw call, no
+	# instancing). MultiMesh instancing hangs SwiftShader's WebGL2 during
+	# boot; a merged mesh renders identically and works everywhere.
+	var merged := ArrayMesh.new()
+	var surface_count := cube_mesh.get_surface_count()
+	for s in surface_count:
+		var tool := SurfaceTool.new()
+		tool.begin(Mesh.PRIMITIVE_TRIANGLES)
+		tool.set_material(cube_mesh.surface_get_material(s))
+		for t in transforms:
+			tool.append_from(cube_mesh, s, t)
+		tool.commit(merged)
+	var visual := MeshInstance3D.new()
 	visual.name = "IslandVisual"
-	visual.multimesh = multimesh
+	visual.mesh = merged
 	visual.custom_aabb = AABB(Vector3(-25, -5, -33), Vector3(50, 8, 54))
 	add_child(visual)
 	add_child(body)
