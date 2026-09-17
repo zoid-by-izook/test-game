@@ -1,0 +1,53 @@
+name: Playtest
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  GODOT_VERSION: "4.7.2"
+
+jobs:
+  playtest:
+    name: Scripted smoke playtest
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Install xvfb and software GL
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb libgl1-mesa-dri
+
+      - name: Download Godot binary
+        run: |
+          curl -L -o godot.zip "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q godot.zip
+          chmod +x "Godot_v${GODOT_VERSION}-stable_linux.x86_64"
+
+      - name: Run scripted playtest
+        run: |
+          xvfb-run -a "./Godot_v${GODOT_VERSION}-stable_linux.x86_64" \
+            --path . res://tests/smoke_test.tscn \
+            --rendering-driver opengl3 > playtest.log 2>&1
+          code=$?
+          tail -n 30 playtest.log
+          if grep -q "SCRIPT ERROR" playtest.log; then
+            echo "::error::GDScript runtime errors during playtest"
+            code=1
+          fi
+          exit $code
+
+      - name: Upload gameplay screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playtest-screenshots
+          path: test-results/screenshots/
