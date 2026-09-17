@@ -44,6 +44,76 @@ jobs:
           mkdir -p exports/web
           "./Godot_v${GODOT_VERSION}-stable_linux.x86_64" --headless --path . --export-release "Web" ./exports/web/index.html
 
+      - name: Capture website screenshots
+        run: |
+          # Serve the exported site locally, then screenshot it at desktop and
+          # mobile sizes with headless Chrome (software WebGL via SwiftShader).
+          # Readiness = the engine's #status overlay being removed from the DOM,
+          # which happens exactly when the game finishes booting -- no guessing
+          # with virtual-time budgets (those fast-forward past wasm compile).
+          python3 -m http.server 8901 --directory exports/web >/tmp/http.log 2>&1 &
+          SERVER_PID=$!
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:8901/index.html >/dev/null && break
+            sleep 1
+          done
+          mkdir -p website-screenshots
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$CHROME" ]; then
+            echo "No Chrome/Chromium binary found; skipping website screenshots."
+          else
+            npm install --no-audit --no-fund --prefix /tmp/shot-deps puppeteer-core
+            cat > /tmp/shot.js <<'EOF'
+          const puppeteer = require('/tmp/shot-deps/node_modules/puppeteer-core');
+          (async () => {
+            const browser = await puppeteer.launch({
+              executablePath: process.env.CHROME_BIN,
+              args: ['--no-sandbox', '--disable-dev-shm-usage', '--hide-scrollbars',
+                     '--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
+            });
+            try {
+              for (const [w, h, name] of [[1280, 800, 'website-desktop-1280x800.png'],
+                                          [390, 844, 'website-mobile-390x844.png']]) {
+                const page = await browser.newPage();
+                await page.setViewport({width: w, height: h});
+                await page.goto('http://127.0.0.1:8901/index.html', {waitUntil: 'load'});
+                // The engine removes #status when boot completes.
+                await page.waitForFunction(() => !document.getElementById('status'),
+                                           {timeout: 180000, polling: 1000});
+                // Then wait for 90 presented frames so software-rendered 3D
+                // (incl. first-use shader compiles) actually lands on screen.
+                // Frame-count, not wall-clock: adapts to slow SwiftShader.
+                await page.waitForFunction(() => {
+                  return new Promise((resolve) => {
+                    let frames = 0;
+                    const tick = () => {
+                      if (++frames >= 90) { resolve(true); }
+                      else { requestAnimationFrame(tick); }
+                    };
+                    requestAnimationFrame(tick);
+                  });
+                }, {timeout: 180000, polling: 1000});
+                await page.screenshot({path: 'website-screenshots/' + name});
+                await page.close();
+              }
+            } finally {
+              await browser.close();
+            }
+          })();
+          EOF
+            CHROME_BIN="$CHROME" node /tmp/shot.js
+          fi
+          kill $SERVER_PID || true
+          ls -la website-screenshots
+
+      - name: Upload website screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: website-screenshots
+          path: website-screenshots
+          if-no-files-found: warn
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
