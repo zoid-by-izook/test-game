@@ -48,7 +48,9 @@ jobs:
         run: |
           # Serve the exported site locally, then screenshot it at desktop and
           # mobile sizes with headless Chrome (software WebGL via SwiftShader).
-          # --virtual-time-budget lets the Godot game boot before the shot.
+          # --virtual-time-budget lets the Godot game boot before the shot; it
+          # needs to be generous because the 39 MB wasm plus software-
+          # rasterized 3D frames take a while on a cold CI runner.
           python3 -m http.server 8901 --directory exports/web >/tmp/http.log 2>&1 &
           SERVER_PID=$!
           for i in $(seq 1 30); do
@@ -64,7 +66,7 @@ jobs:
               "$CHROME" --headless=new --no-sandbox --disable-dev-shm-usage \
                 --hide-scrollbars \
                 --use-angle=swiftshader --enable-unsafe-swiftshader \
-                --window-size="$1,$2" --virtual-time-budget=25000 \
+                --window-size="$1,$2" --virtual-time-budget=120000 \
                 --screenshot="website-screenshots/$3" "http://127.0.0.1:8901/index.html"
             }
             shot 1280 800 website-desktop-1280x800.png
