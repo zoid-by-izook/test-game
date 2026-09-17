@@ -1,8 +1,9 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scripts/game.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/follow_camera.gd" id="2"]
 [ext_resource type="Script" path="res://scripts/start_menu.gd" id="3"]
+[ext_resource type="Script" path="res://scripts/pause_menu.gd" id="4"]
 
 [sub_resource type="ProceduralSkyMaterial" id="sky_mat"]
 sky_top_color = Color(0.3, 0.5, 0.8, 1)
@@ -110,3 +111,57 @@ theme_override_colors/font_color = Color(0.55, 0.6, 0.68, 1)
 theme_override_font_sizes/font_size = 20
 horizontal_alignment = 1
 text = "or press any key"
+
+[node name="PauseMenu" type="Control" parent="UI"]
+visible = false
+process_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("4")
+
+[node name="Dim" type="ColorRect" parent="UI/PauseMenu"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.02, 0.03, 0.06, 0.72)
+
+[node name="Center" type="CenterContainer" parent="UI/PauseMenu"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBox" type="VBoxContainer" parent="UI/PauseMenu/Center"]
+alignment = 1
+theme_override_constants/separation = 18
+
+[node name="Title" type="Label" parent="UI/PauseMenu/Center/VBox"]
+theme_override_font_sizes/font_size = 48
+horizontal_alignment = 1
+text = "PAUSED"
+
+[node name="ResumeButton" type="Button" parent="UI/PauseMenu/Center/VBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(300, 72)
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 32
+text = "▶  RESUME"
+
+[node name="RestartButton" type="Button" parent="UI/PauseMenu/Center/VBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(300, 72)
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 32
+text = "↻  RESTART"
+
+[node name="Hint" type="Label" parent="UI/PauseMenu/Center/VBox"]
+theme_override_colors/font_color = Color(0.55, 0.6, 0.68, 1)
+theme_override_font_sizes/font_size = 20
+horizontal_alignment = 1
+text = "Esc / P to resume"
