@@ -66,28 +66,35 @@ jobs:
             cat > /tmp/shot.js <<'EOF'
           const puppeteer = require('/tmp/shot-deps/node_modules/puppeteer-core');
           (async () => {
-            const browser = await puppeteer.launch({
-              executablePath: process.env.CHROME_BIN,
-              args: ['--no-sandbox', '--disable-dev-shm-usage', '--hide-scrollbars',
-                     '--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
-            });
-            try {
-              for (const [w, h, name] of [[1280, 800, 'website-desktop-1280x800.png'],
-                                          [390, 844, 'website-mobile-390x844.png']]) {
+            for (const [w, h, name] of [[1280, 800, 'website-desktop-1280x800.png'],
+                                        [390, 844, 'website-mobile-390x844.png']]) {
+              // Fresh browser per viewport: a second page in the same browser
+              // session intermittently gets a degraded WebGL context under
+              // SwiftShader (HUD renders, 3D stays black).
+              const browser = await puppeteer.launch({
+                executablePath: process.env.CHROME_BIN,
+                args: ['--no-sandbox', '--disable-dev-shm-usage', '--hide-scrollbars',
+                       '--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
+              });
+              try {
                 const page = await browser.newPage();
                 await page.setViewport({width: w, height: h});
                 await page.goto('http://127.0.0.1:8901/index.html', {waitUntil: 'load'});
                 // The engine removes #status when boot completes.
                 await page.waitForFunction(() => !document.getElementById('status'),
                                            {timeout: 180000, polling: 1000});
-                // Then wait for 90 presented frames so software-rendered 3D
-                // (incl. first-use shader compiles) actually lands on screen.
-                // Frame-count, not wall-clock: adapts to slow SwiftShader.
+                // Then wait for 90 presented frames AND 30s wall-clock so
+                // software-rendered 3D (incl. first-use shader compiles)
+                // actually lands on screen. Frame-count alone is not enough:
+                // rAF can fire much faster than SwiftShader completes frames.
                 await page.waitForFunction(() => {
                   return new Promise((resolve) => {
+                    const start = performance.now();
                     let frames = 0;
                     const tick = () => {
-                      if (++frames >= 90) { resolve(true); }
+                      frames++;
+                      const elapsed = performance.now() - start;
+                      if (frames >= 90 && elapsed >= 30000) { resolve(true); }
                       else { requestAnimationFrame(tick); }
                     };
                     requestAnimationFrame(tick);
@@ -95,9 +102,9 @@ jobs:
                 }, {timeout: 180000, polling: 1000});
                 await page.screenshot({path: 'website-screenshots/' + name});
                 await page.close();
+              } finally {
+                await browser.close();
               }
-            } finally {
-              await browser.close();
             }
           })();
           EOF
