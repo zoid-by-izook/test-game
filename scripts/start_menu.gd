@@ -14,7 +14,7 @@ signal start_requested
 
 const CREDITS: Array = [
 	{
-		"title": "Ultimate Platformer Pack (character, coins, platforms, flag)",
+		"title": "Ultimate Platformer Pack (character, coins, platforms, flag, island)",
 		"artist": "Quaternius",
 		"license": "CC0 1.0 Universal",
 	},

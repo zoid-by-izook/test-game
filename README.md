@@ -52,7 +52,7 @@ GitHub Actions.** After that, pushes to `main` go live on their own.
 ## Credits
 
 - [**Ultimate Platformer Pack**](https://quaternius.itch.io/ultimate-platformer-pack)
-  (character, coins, platforms, flag) by [Quaternius](https://quaternius.com)
+  (character, coins, platforms, flag, island) by [Quaternius](https://quaternius.com)
   — CC0 1.0 Universal
 - [**Stylized Sky shader**](https://github.com/gdquest-demos/godot-4-stylized-sky)
   (daytime sky, adapted for this game with our own cloud textures) by

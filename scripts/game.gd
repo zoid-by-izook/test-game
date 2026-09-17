@@ -1,22 +1,35 @@
 extends Node3D
-## Root of the graybox level. Builds the ground, floating platforms,
+## Root of the graybox level. Builds the island, ocean, floating platforms,
 ## coins, and goal from code; spawns the player; tracks the coin counter;
 ## shows the win label; respawns the player when they fall off the world.
 
 const PLAYER_SCENE: PackedScene = preload("res://scenes/player.tscn")
 const COIN_SCENE: PackedScene = preload("res://scenes/coin.tscn")
 const GOAL_SCENE: PackedScene = preload("res://scenes/goal.tscn")
-## Quaternius grass blocks, scaled to each platform's size. Collision stays
-## an exact box. The ground uses the flat "Center" tile (top face only —
-## the camera never sees its sides); floating platforms use the closed
-## "Single" cube so they look right from every angle.
-const GROUND_MODEL: PackedScene = preload("res://assets/quaternius/Cube_Grass_Center.gltf")
+## Quaternius grass blocks. Floating platforms use the closed "Single" cube
+## (scaled to size) so they look right from every angle; the island below is
+## many unscaled Single cubes arranged as a rounded, stepped blob via a
+## MultiMesh, with one StaticBody3D holding a collision box per top cube.
 const PLATFORM_MODEL: PackedScene = preload("res://assets/quaternius/Cube_Grass_Single.gltf")
+const ISLAND_MODEL: PackedScene = preload("res://assets/quaternius/Cube_Grass_Single.gltf")
+const OCEAN_SHADER: Shader = preload("res://assets/water/ocean.gdshader")
 ## Cube_Grass_Single measures ~2.23 x 2.0 x 2.23 units.
 const PLATFORM_BASE_SIZE := Vector3(2.23, 2.0, 2.23)
+## Island: two stepped layers of grass cubes centered near the spawn area.
+## The top layer's edge is jittered per-column so the shoreline is not a
+## perfect circle.
+const ISLAND_CUBE := 2.23
+const ISLAND_CENTER := Vector3(0.0, 0.0, -6.0)
+const ISLAND_LAYERS := [
+	{"top_y": 0.0, "radius": 20.0},
+	{"top_y": -2.0, "radius": 17.5},
+]
+const OCEAN_Y := -2.8
+const OCEAN_SIZE := 600.0
 
 const SPAWN := Vector3(0.0, 1.5, 6.0)
-const KILL_Y := -12.0
+## Just below the ocean surface: touching the water respawns the player.
+const KILL_Y := -4.0
 
 var _coins_total := 0
 var _coins_got := 0
@@ -105,7 +118,8 @@ func _process(_delta: float) -> void:
 
 
 func _build_level() -> void:
-	_add_platform(Vector3(0, -0.5, 0), Vector3(60, 1, 60), true)
+	_build_island()
+	_build_ocean()
 	_add_platform(Vector3(0, 1.0, -8), Vector3(5, 0.6, 5))
 	_add_platform(Vector3(6, 2.5, -12), Vector3(4, 0.6, 4))
 	_add_platform(Vector3(0, 4.0, -16), Vector3(4, 0.6, 4))
@@ -132,23 +146,107 @@ func _build_level() -> void:
 	add_child(goal)
 
 
-func _add_platform(pos: Vector3, size: Vector3, is_ground := false) -> void:
+func _add_platform(pos: Vector3, size: Vector3) -> void:
 	var body := StaticBody3D.new()
 	body.position = pos
 	var collision := CollisionShape3D.new()
 	var box_shape := BoxShape3D.new()
 	box_shape.size = size
 	collision.shape = box_shape
-	var model: Node3D
-	if is_ground:
-		model = GROUND_MODEL.instantiate()
-		model.scale = size / 2.0
-	else:
-		model = PLATFORM_MODEL.instantiate()
-		model.scale = size / PLATFORM_BASE_SIZE
+	var model: Node3D = PLATFORM_MODEL.instantiate()
+	model.scale = size / PLATFORM_BASE_SIZE
 	body.add_child(collision)
 	body.add_child(model)
 	add_child(body)
+
+
+## Builds the island: a MultiMesh of grass cubes in stepped circular layers
+## plus one StaticBody3D with a collision box per top-layer cube.
+func _build_island() -> void:
+	var cube_mesh := _extract_mesh(ISLAND_MODEL)
+	var multimesh := MultiMesh.new()
+	multimesh.transform_format = MultiMesh.TRANSFORM_3D
+	multimesh.mesh = cube_mesh
+	var transforms: Array[Transform3D] = []
+	var body := StaticBody3D.new()
+	body.name = "IslandBody"
+	for layer_index in ISLAND_LAYERS.size():
+		var layer: Dictionary = ISLAND_LAYERS[layer_index]
+		var top_y: float = layer["top_y"]
+		var radius: float = layer["radius"]
+		var center_y := top_y - 1.0
+		var extent := int(ceil(radius / ISLAND_CUBE)) + 1
+		for ix in range(-extent, extent + 1):
+			for iz in range(-extent, extent + 1):
+				var x := ISLAND_CENTER.x + float(ix) * ISLAND_CUBE
+				var z := ISLAND_CENTER.z + float(iz) * ISLAND_CUBE
+				var dist := Vector2(x - ISLAND_CENTER.x, z - ISLAND_CENTER.z).length()
+				var edge := radius * (0.92 + 0.16 * _hash2(ix, iz))
+				if dist > edge:
+					continue
+				var cube_pos := Vector3(x, center_y, z)
+				transforms.append(Transform3D(Basis(), cube_pos))
+				if layer_index == 0:
+					var shape := CollisionShape3D.new()
+					var box := BoxShape3D.new()
+					box.size = Vector3(ISLAND_CUBE, 2.0, ISLAND_CUBE)
+					shape.shape = box
+					shape.position = cube_pos
+					body.add_child(shape)
+	multimesh.instance_count = transforms.size()
+	for i in transforms.size():
+		multimesh.set_instance_transform(i, transforms[i])
+	var visual := MultiMeshInstance3D.new()
+	visual.name = "IslandVisual"
+	visual.multimesh = multimesh
+	visual.custom_aabb = AABB(Vector3(-25, -5, -33), Vector3(50, 8, 54))
+	add_child(visual)
+	add_child(body)
+
+
+## Builds the ocean: one large subdivided plane with the animated stylized
+## water shader. It has no collision — falling in means hitting KILL_Y.
+func _build_ocean() -> void:
+	var plane := PlaneMesh.new()
+	plane.size = Vector2(OCEAN_SIZE, OCEAN_SIZE)
+	plane.subdivide_width = 96
+	plane.subdivide_depth = 96
+	var material := ShaderMaterial.new()
+	material.shader = OCEAN_SHADER
+	var water := MeshInstance3D.new()
+	water.name = "Ocean"
+	water.mesh = plane
+	water.material_override = material
+	water.position = Vector3(ISLAND_CENTER.x, OCEAN_Y, ISLAND_CENTER.z)
+	add_child(water)
+
+
+## Pulls the ArrayMesh out of a single-mesh glTF PackedScene without
+## keeping the probe instance around.
+func _extract_mesh(packed: PackedScene) -> Mesh:
+	var probe := packed.instantiate()
+	var mesh_instance := _find_mesh_instance(probe)
+	var mesh := mesh_instance.mesh
+	probe.queue_free()
+	return mesh
+
+
+func _find_mesh_instance(node: Node) -> MeshInstance3D:
+	if node is MeshInstance3D:
+		return node
+	for child in node.get_children():
+		var found := _find_mesh_instance(child)
+		if found != null:
+			return found
+	return null
+
+
+## Deterministic 0..1 hash for shoreline jitter (stable across runs).
+func _hash2(x: int, z: int) -> float:
+	var h := x * 374761393 + z * 668265263 + 974711
+	h = (h ^ (h >> 13)) * 1274126177
+	h = h ^ (h >> 16)
+	return float(h & 0xffff) / 65535.0
 
 
 func _on_coin_collected(_coin: Coin) -> void:
