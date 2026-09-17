@@ -32,6 +32,16 @@ jobs:
           unzip -q godot.zip
           chmod +x "Godot_v${GODOT_VERSION}-stable_linux.x86_64"
 
+      - name: Import project (build script class cache)
+        run: |
+          # A fresh checkout has no .godot/global_script_class_cache.cfg, so
+          # scripts referencing global class_names (PlatformerPlayer, Coin,
+          # Goal) fail to parse when the game is run directly. The editor
+          # import pass builds the cache; without it the test scene's script
+          # never loads and Godot idles until the timeout.
+          "./Godot_v${GODOT_VERSION}-stable_linux.x86_64" \
+            --headless --path . --import
+
       - name: Run scripted playtest
         run: |
           # Stream the log live (tee) so a slow/hung run is diagnosable from the
