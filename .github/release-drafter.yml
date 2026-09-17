@@ -3,14 +3,17 @@ tag-template: 'v$RESOLVED_VERSION'
 
 categories:
   - title: '🚀 Features'
-    labels:
-      - 'feature'
+    semver-increment: 'minor'
+    when:
+      label: 'feature'
   - title: '🐛 Fixes'
-    labels:
-      - 'fix'
+    when:
+      label: 'fix'
   - title: '🧹 Chores'
-    labels:
-      - 'chore'
+    when:
+      label: 'chore'
+  - type: 'version-resolver'
+    semver-increment: 'patch'
 
 change-template: '- $TITLE @$AUTHOR (#$NUMBER)'
 
@@ -19,20 +22,8 @@ template: |
 
   $CHANGES
 
-version-resolver:
-  major:
-    labels:
-      - 'major'
-  minor:
-    labels:
-      - 'feature'
-  patch:
-    labels:
-      - 'fix'
-      - 'chore'
-  default: patch
-
 # Our branch convention (feat/*, fix/*, chore|test|docs/*) labels PRs automatically.
+# Runs via the separate autolabeler action (release-drafter/release-drafter/autolabeler).
 autolabeler:
   - label: 'feature'
     branch:
