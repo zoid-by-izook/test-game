@@ -49,6 +49,13 @@ Every push to `main` (or a manual `workflow_dispatch`) redeploys the site.
 In the GitHub repo: **Settings → Pages → Build and deployment → Source →
 GitHub Actions.** After that, pushes to `main` go live on their own.
 
+## Credits
+
+No third-party assets yet — everything on screen is original programmer art by
+Zoid. As licensed assets are added, each artist, asset, and license will be
+credited here, in the in-game credits menu (Credits button on the title
+screen), and on the website.
+
 ## Decisions baked in (easy to change)
 
 - **Godot 4.7.2** (latest stable as of 2026-09-16), GL Compatibility renderer —
