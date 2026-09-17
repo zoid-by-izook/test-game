@@ -13,19 +13,47 @@ const KILL_Y := -12.0
 var _coins_total := 0
 var _coins_got := 0
 var _player: PlatformerPlayer
+var _started := false
 
 @onready var _coin_label: Label = $UI/CoinLabel
 @onready var _win_label: Label = $UI/WinLabel
 @onready var _camera: Camera3D = $Camera3D
+@onready var _menu: StartMenu = $UI/StartMenu
 
 
 func _ready() -> void:
 	_build_level()
 	_player = PLAYER_SCENE.instantiate()
 	_player.position = SPAWN
+	_player.controls_enabled = false
 	add_child(_player)
 	_camera.target = _player
+	_menu.start_requested.connect(start_game)
+	_menu.show_menu()
 	_update_coin_label()
+
+
+func is_started() -> bool:
+	return _started
+
+
+func start_game() -> void:
+	if _started:
+		return
+	_started = true
+	_menu.hide_menu()
+	_player.controls_enabled = true
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if _started:
+		return
+	if event is InputEventKey and event.pressed and not event.echo:
+		start_game()
+	elif event is InputEventMouseButton and event.pressed:
+		start_game()
+	elif event is InputEventScreenTouch and event.pressed:
+		start_game()
 
 
 func _process(_delta: float) -> void:
