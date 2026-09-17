@@ -21,10 +21,10 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v6
 
-      - name: Install xvfb and software GL
+      - name: Install xvfb, software GL, and ffmpeg
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq xvfb libgl1-mesa-dri
+          sudo apt-get install -y -qq xvfb libgl1-mesa-dri ffmpeg
 
       - name: Download Godot binary
         run: |
@@ -42,18 +42,37 @@ jobs:
           "./Godot_v${GODOT_VERSION}-stable_linux.x86_64" \
             --headless --path . --import
 
-      - name: Run scripted playtest
+      - name: Run scripted playtest (recorded)
         run: |
           # Stream the log live (tee) so a slow/hung run is diagnosable from the
           # step output instead of going silent. --resolution cuts pixels 4x for
           # the software renderer; timeout fails loudly instead of hanging CI.
+          #
+          # The whole run is recorded: Xvfb on a fixed display (:99) instead of
+          # xvfb-run's auto display, so ffmpeg x11grab can capture it. The
+          # recording stops gracefully (SIGINT) so the mp4 finalizes even when
+          # the playtest itself fails -- a failed run's video is the best debug
+          # artifact there is.
           set +e
           set -o pipefail
-          timeout -k 60 25m xvfb-run -a "./Godot_v${GODOT_VERSION}-stable_linux.x86_64" \
+          mkdir -p test-results
+          Xvfb :99 -screen 0 640x360x24 &
+          XVFB_PID=$!
+          export DISPLAY=:99
+          sleep 1
+          ffmpeg -nostdin -y -f x11grab -video_size 640x360 -framerate 30 -i :99 \
+            -c:v libx264 -preset veryfast -pix_fmt yuv420p \
+            test-results/playtest.mp4 &
+          FFMPEG_PID=$!
+          sleep 1
+          timeout -k 60 25m "./Godot_v${GODOT_VERSION}-stable_linux.x86_64" \
             --path . res://tests/smoke_test.tscn \
             --rendering-driver opengl3 --resolution 640x360 2>&1 | tee playtest.log
           code=${PIPESTATUS[0]}
           set -e
+          kill -INT $FFMPEG_PID || true
+          wait $FFMPEG_PID || true
+          kill $XVFB_PID || true
           echo "playtest exit code: $code"
           tail -n 30 playtest.log
           if [ "$code" -eq 124 ]; then
@@ -71,3 +90,11 @@ jobs:
         with:
           name: playtest-screenshots
           path: test-results/screenshots/
+
+      - name: Upload playtest video
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playtest-video
+          path: test-results/playtest.mp4
+          if-no-files-found: warn
