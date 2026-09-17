@@ -26,6 +26,7 @@ func _ready() -> void:
 
 
 func _run() -> void:
+	print("SMOKE: starting scripted playtest")
 	# Let the game finish _ready() and the player settle onto the ground.
 	await get_tree().process_frame
 	await get_tree().process_frame
@@ -38,6 +39,7 @@ func _run() -> void:
 	await _shot("01-spawned")
 
 	# Move right: position.x must clearly increase.
+	print("SMOKE: stage move-right")
 	var start_x: float = _player.global_position.x
 	Input.action_press("move_right")
 	await _physics_frames(120)
@@ -47,6 +49,7 @@ func _run() -> void:
 	await _shot("02-moved-right")
 
 	# Jump: track the apex over the next second.
+	print("SMOKE: stage jump")
 	var ground_y: float = _player.global_position.y
 	Input.action_press("jump")
 	await _physics_frames(2)
@@ -60,6 +63,7 @@ func _run() -> void:
 	await _physics_frames(60) # land before teleporting
 
 	# Coin: drop the player beside a real coin and walk into it.
+	print("SMOKE: stage coin-collect")
 	var coin := _first_coin()
 	if coin == null:
 		_check(false, "found a coin to collect")
@@ -75,6 +79,7 @@ func _run() -> void:
 		await _shot("04-coin-collected")
 
 	# Goal: drop the player onto the goal platform; the win label must appear.
+	print("SMOKE: stage victory")
 	_player.global_position = Vector3(-6.0, 7.0, -20.0)
 	_player.velocity = Vector3.ZERO
 	await _physics_frames(90)
@@ -83,6 +88,7 @@ func _run() -> void:
 	await _shot("05-victory")
 
 	# Fall respawn: below the kill plane the player must return to spawn.
+	print("SMOKE: stage fall-respawn")
 	_player.global_position = Vector3(0.0, -20.0, 6.0)
 	_player.velocity = Vector3.ZERO
 	await _physics_frames(30)

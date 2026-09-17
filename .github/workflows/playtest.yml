@@ -16,7 +16,7 @@ jobs:
   playtest:
     name: Scripted smoke playtest
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -34,11 +34,21 @@ jobs:
 
       - name: Run scripted playtest
         run: |
-          xvfb-run -a "./Godot_v${GODOT_VERSION}-stable_linux.x86_64" \
+          # Stream the log live (tee) so a slow/hung run is diagnosable from the
+          # step output instead of going silent. --resolution cuts pixels 4x for
+          # the software renderer; timeout fails loudly instead of hanging CI.
+          set +e
+          set -o pipefail
+          timeout -k 60 25m xvfb-run -a "./Godot_v${GODOT_VERSION}-stable_linux.x86_64" \
             --path . res://tests/smoke_test.tscn \
-            --rendering-driver opengl3 > playtest.log 2>&1
-          code=$?
+            --rendering-driver opengl3 --resolution 640x360 2>&1 | tee playtest.log
+          code=${PIPESTATUS[0]}
+          set -e
+          echo "playtest exit code: $code"
           tail -n 30 playtest.log
+          if [ "$code" -eq 124 ]; then
+            echo "::error::Playtest timed out after 25 minutes"
+          fi
           if grep -q "SCRIPT ERROR" playtest.log; then
             echo "::error::GDScript runtime errors during playtest"
             code=1
