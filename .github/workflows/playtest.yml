@@ -1,0 +1,73 @@
+name: Playtest
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  GODOT_VERSION: "4.7.2"
+
+jobs:
+  playtest:
+    name: Scripted smoke playtest
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v6
+
+      - name: Install xvfb and software GL
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb libgl1-mesa-dri
+
+      - name: Download Godot binary
+        run: |
+          curl -L -o godot.zip "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q godot.zip
+          chmod +x "Godot_v${GODOT_VERSION}-stable_linux.x86_64"
+
+      - name: Import project (build script class cache)
+        run: |
+          # A fresh checkout has no .godot/global_script_class_cache.cfg, so
+          # scripts referencing global class_names (PlatformerPlayer, Coin,
+          # Goal) fail to parse when the game is run directly. The editor
+          # import pass builds the cache; without it the test scene's script
+          # never loads and Godot idles until the timeout.
+          "./Godot_v${GODOT_VERSION}-stable_linux.x86_64" \
+            --headless --path . --import
+
+      - name: Run scripted playtest
+        run: |
+          # Stream the log live (tee) so a slow/hung run is diagnosable from the
+          # step output instead of going silent. --resolution cuts pixels 4x for
+          # the software renderer; timeout fails loudly instead of hanging CI.
+          set +e
+          set -o pipefail
+          timeout -k 60 25m xvfb-run -a "./Godot_v${GODOT_VERSION}-stable_linux.x86_64" \
+            --path . res://tests/smoke_test.tscn \
+            --rendering-driver opengl3 --resolution 640x360 2>&1 | tee playtest.log
+          code=${PIPESTATUS[0]}
+          set -e
+          echo "playtest exit code: $code"
+          tail -n 30 playtest.log
+          if [ "$code" -eq 124 ]; then
+            echo "::error::Playtest timed out after 25 minutes"
+          fi
+          if grep -q "SCRIPT ERROR" playtest.log; then
+            echo "::error::GDScript runtime errors during playtest"
+            code=1
+          fi
+          exit $code
+
+      - name: Upload gameplay screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playtest-screenshots
+          path: test-results/screenshots/

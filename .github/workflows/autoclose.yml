@@ -1,0 +1,29 @@
+name: Auto-close outside contributions
+
+# Until the game is ready for outside eyes, only the owner (and Isaac) may
+# open PRs. Anything else is closed automatically with a friendly note.
+#
+# pull_request_target runs this workflow from the base branch, so it applies
+# even to PRs opened from forks. No code is checked out, so untrusted PR
+# contents can never execute here — the only action is closing the PR.
+
+on:
+  pull_request_target:
+    types: [opened, reopened]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  close-outside-prs:
+    name: Close PRs from non-collaborators
+    runs-on: ubuntu-latest
+    if: github.actor != 'zoid-by-izook' && github.actor != 'Izook'
+    steps:
+      - name: Close with an explanation
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr close "${{ github.event.pull_request.number }}" \
+            --repo "${{ github.repository }}" \
+            --comment "Thanks for stopping by! This project isn't accepting outside contributions yet — it'll open up once the game is ready. Check back later. 🦀"

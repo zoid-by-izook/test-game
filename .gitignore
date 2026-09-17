@@ -4,6 +4,9 @@
 # Local export output — CI builds this fresh on every run.
 exports/
 
+# Playtest output — screenshots are uploaded as CI artifacts, not committed.
+test-results/
+
 # Editor / OS noise.
 *.tmp
 .DS_Store
