@@ -19,8 +19,8 @@ shader_type sky;
 
 group_uniforms sky;
 
-uniform vec3 top_color : source_color = vec3(0.20, 0.52, 1.0);
-uniform vec3 bottom_color : source_color = vec3(0.74, 0.90, 1.0);
+uniform vec3 top_color : source_color = vec3(0.15, 0.45, 0.95);
+uniform vec3 bottom_color : source_color = vec3(0.40, 0.65, 0.96);
 uniform vec3 sun_scatter : source_color = vec3(1.0, 0.85, 0.6);
 
 group_uniforms sun;
@@ -91,7 +91,7 @@ vec3 compute_sky_color(vec3 eyedir, vec3 sun_dir) {
 
 	// Gentle warm haze hugging the horizon.
 	float horizon_band = pow(1.0 - clamp(eyedir.y, 0.0, 1.0), 3.0);
-	vec3 sky_color = sky_gradient + sun_scatter * horizon_band * 0.25;
+	vec3 sky_color = sky_gradient + sun_scatter * horizon_band * 0.12;
 
 	// Procedural sun disc + glow, placed on the scene's directional light,
 	// with a touch of warmth in the sky around it.
