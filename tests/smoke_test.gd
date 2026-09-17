@@ -46,6 +46,18 @@ func _run() -> void:
 	_check(_game.is_started(), "game started after dismissal")
 	_check(_player.controls_enabled, "player controls enabled after dismissal")
 
+	# Pause: tree freezes, overlay shows; resume restores play.
+	print("SMOKE: stage pause")
+	var pause_menu: Control = _game.get_node("UI/PauseMenu")
+	_check(not pause_menu.visible, "pause menu hidden while playing")
+	_game.pause_game()
+	_check(_game.is_paused(), "tree paused")
+	_check(pause_menu.visible, "pause menu shown while paused")
+	await _shot("06-paused")
+	_game.resume_game()
+	_check(not _game.is_paused(), "tree resumed")
+	_check(not pause_menu.visible, "pause menu hidden after resume")
+
 	await _physics_frames(90)
 	_check(_player.is_on_floor(), "player resting on floor")
 	await _shot("01-spawned")

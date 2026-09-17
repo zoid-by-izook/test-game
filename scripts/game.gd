@@ -19,6 +19,7 @@ var _started := false
 @onready var _win_label: Label = $UI/WinLabel
 @onready var _camera: Camera3D = $Camera3D
 @onready var _menu: StartMenu = $UI/StartMenu
+@onready var _pause_menu: PauseMenu = $UI/PauseMenu
 
 
 func _ready() -> void:
@@ -29,12 +30,18 @@ func _ready() -> void:
 	add_child(_player)
 	_camera.target = _player
 	_menu.start_requested.connect(start_game)
+	_pause_menu.resume_requested.connect(resume_game)
+	_pause_menu.restart_requested.connect(restart_game)
 	_menu.show_menu()
 	_update_coin_label()
 
 
 func is_started() -> bool:
 	return _started
+
+
+func is_paused() -> bool:
+	return get_tree().paused
 
 
 func start_game() -> void:
@@ -45,15 +52,40 @@ func start_game() -> void:
 	_player.controls_enabled = true
 
 
-func _unhandled_input(event: InputEvent) -> void:
-	if _started:
+func pause_game() -> void:
+	if not _started or get_tree().paused:
 		return
-	if event is InputEventKey and event.pressed and not event.echo:
-		start_game()
-	elif event is InputEventMouseButton and event.pressed:
-		start_game()
-	elif event is InputEventScreenTouch and event.pressed:
-		start_game()
+	get_tree().paused = true
+	_pause_menu.show_menu()
+
+
+func resume_game() -> void:
+	if not get_tree().paused:
+		return
+	get_tree().paused = false
+	_pause_menu.hide_menu()
+
+
+func restart_game() -> void:
+	get_tree().paused = false
+	get_tree().reload_current_scene()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if not _started:
+		if event is InputEventKey and event.pressed and not event.echo:
+			start_game()
+		elif event is InputEventMouseButton and event.pressed:
+			start_game()
+		elif event is InputEventScreenTouch and event.pressed:
+			start_game()
+		return
+	if get_tree().paused:
+		return
+	if event.is_action_pressed("ui_cancel"):
+		pause_game()
+	elif event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_P:
+		pause_game()
 
 
 func _process(_delta: float) -> void:
