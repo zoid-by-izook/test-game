@@ -51,8 +51,9 @@ GitHub Actions.** After that, pushes to `main` go live on their own.
 
 ## Credits
 
-- **Ultimate Platformer Pack** (character, coins, platforms, flag) by
-  [Quaternius](https://quaternius.com) — CC0 1.0 Universal
+- [**Ultimate Platformer Pack**](https://quaternius.itch.io/ultimate-platformer-pack)
+  (character, coins, platforms, flag) by [Quaternius](https://quaternius.com)
+  — CC0 1.0 Universal
 
 As licensed assets are added, each artist, asset, and license will be
 credited here, in the in-game credits menu (Credits button on the title
