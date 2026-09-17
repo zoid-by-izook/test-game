@@ -1,0 +1,10 @@
+# Godot's import cache — regenerated locally, never committed.
+.godot/
+
+# Local export output — CI builds this fresh on every run.
+exports/
+
+# Editor / OS noise.
+*.tmp
+.DS_Store
+Thumbs.db
