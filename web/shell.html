@@ -208,7 +208,11 @@ a {
 
 		<main class="page-main">
 			<div class="game-wrap">
-				<canvas id="canvas">
+				<!-- width/height must match the project viewport (project.godot
+				     display/window/size). With canvas_resize_policy=0 the engine
+				     uses these as the render size and never touches the CSS,
+				     so the stylesheet below can scale the canvas responsively. -->
+				<canvas id="canvas" width="1280" height="720">
 					Your browser does not support the canvas tag.
 				</canvas>
 
