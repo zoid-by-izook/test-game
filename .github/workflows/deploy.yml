@@ -80,8 +80,19 @@ jobs:
                 // The engine removes #status when boot completes.
                 await page.waitForFunction(() => !document.getElementById('status'),
                                            {timeout: 180000, polling: 1000});
-                // Let software-rendered 3D frames settle before the shot.
-                await new Promise((r) => setTimeout(r, 3000));
+                // Then wait for 90 presented frames so software-rendered 3D
+                // (incl. first-use shader compiles) actually lands on screen.
+                // Frame-count, not wall-clock: adapts to slow SwiftShader.
+                await page.waitForFunction(() => {
+                  return new Promise((resolve) => {
+                    let frames = 0;
+                    const tick = () => {
+                      if (++frames >= 90) { resolve(true); }
+                      else { requestAnimationFrame(tick); }
+                    };
+                    requestAnimationFrame(tick);
+                  });
+                }, {timeout: 180000, polling: 1000});
                 await page.screenshot({path: 'website-screenshots/' + name});
                 await page.close();
               }
