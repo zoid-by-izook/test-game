@@ -41,6 +41,21 @@ func _run() -> void:
 	_check(menu.visible, "start menu shown on boot")
 	_check(not _game.is_started(), "game not started before dismissal")
 	await _shot("00-start-menu")
+
+	# Credits: open from the menu, any-key dismissal suppressed, back returns.
+	var credits_button: Button = _game.get_node("UI/StartMenu/Center/MainView/CreditsButton")
+	credits_button.pressed.emit()
+	_check(menu.is_credits_open(), "credits view open")
+	await _shot("00-credits")
+	var key_ev := InputEventKey.new()
+	key_ev.pressed = true
+	key_ev.keycode = KEY_A
+	_game._unhandled_input(key_ev)
+	_check(not _game.is_started(), "game not started while credits open")
+	var back_button: Button = _game.get_node("UI/StartMenu/Center/CreditsView/BackButton")
+	back_button.pressed.emit()
+	_check(not menu.is_credits_open(), "credits view closed")
+
 	_game.start_game()
 	_check(not menu.visible, "start menu hidden after dismissal")
 	_check(_game.is_started(), "game started after dismissal")

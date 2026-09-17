@@ -79,38 +79,73 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="VBox" type="VBoxContainer" parent="UI/StartMenu/Center"]
+[node name="MainView" type="VBoxContainer" parent="UI/StartMenu/Center"]
+unique_name_in_owner = true
 alignment = 1
 theme_override_constants/separation = 18
 
-[node name="Title" type="Label" parent="UI/StartMenu/Center/VBox"]
+[node name="Title" type="Label" parent="UI/StartMenu/Center/MainView"]
 theme_override_font_sizes/font_size = 48
 horizontal_alignment = 1
 text = "GRAYBOX PLATFORMER"
 
-[node name="Subtitle" type="Label" parent="UI/StartMenu/Center/VBox"]
+[node name="Subtitle" type="Label" parent="UI/StartMenu/Center/MainView"]
 theme_override_colors/font_color = Color(0.62, 0.68, 0.78, 1)
 theme_override_font_sizes/font_size = 24
 horizontal_alignment = 1
 text = "A minimal 3D platformer scaffold in Godot 4."
 
-[node name="Controls" type="Label" parent="UI/StartMenu/Center/VBox"]
+[node name="Controls" type="Label" parent="UI/StartMenu/Center/MainView"]
 theme_override_font_sizes/font_size = 26
 horizontal_alignment = 1
 text = "WASD / Arrow keys — move    Space — jump"
 
-[node name="StartButton" type="Button" parent="UI/StartMenu/Center/VBox"]
+[node name="StartButton" type="Button" parent="UI/StartMenu/Center/MainView"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(300, 84)
 size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 36
 text = "▶  START"
 
-[node name="Hint" type="Label" parent="UI/StartMenu/Center/VBox"]
+[node name="Hint" type="Label" parent="UI/StartMenu/Center/MainView"]
 theme_override_colors/font_color = Color(0.55, 0.6, 0.68, 1)
 theme_override_font_sizes/font_size = 20
 horizontal_alignment = 1
 text = "or press any key"
+
+[node name="CreditsButton" type="Button" parent="UI/StartMenu/Center/MainView"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(300, 56)
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 24
+text = "CREDITS"
+
+[node name="CreditsView" type="VBoxContainer" parent="UI/StartMenu/Center"]
+unique_name_in_owner = true
+visible = false
+alignment = 1
+theme_override_constants/separation = 16
+
+[node name="CreditsTitle" type="Label" parent="UI/StartMenu/Center/CreditsView"]
+theme_override_font_sizes/font_size = 40
+horizontal_alignment = 1
+text = "CREDITS"
+
+[node name="CreditsScroll" type="ScrollContainer" parent="UI/StartMenu/Center/CreditsView"]
+custom_minimum_size = Vector2(560, 200)
+size_flags_horizontal = 4
+
+[node name="CreditsList" type="VBoxContainer" parent="UI/StartMenu/Center/CreditsView/CreditsScroll"]
+unique_name_in_owner = true
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+
+[node name="BackButton" type="Button" parent="UI/StartMenu/Center/CreditsView"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(300, 64)
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 28
+text = "←  BACK"
 
 [node name="PauseMenu" type="Control" parent="UI"]
 visible = false

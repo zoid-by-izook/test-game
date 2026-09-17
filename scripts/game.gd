@@ -73,6 +73,8 @@ func restart_game() -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not _started:
+		if _menu.is_credits_open():
+			return
 		if event is InputEventKey and event.pressed and not event.echo:
 			start_game()
 		elif event is InputEventMouseButton and event.pressed:
