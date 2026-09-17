@@ -119,7 +119,8 @@ func _process(_delta: float) -> void:
 
 func _build_level() -> void:
 	_build_island()
-	_build_ocean()
+	# TEMP-DIAG: water disabled to isolate SwiftShader boot hang.
+	# _build_ocean()
 	_add_platform(Vector3(0, 1.0, -8), Vector3(5, 0.6, 5))
 	_add_platform(Vector3(6, 2.5, -12), Vector3(4, 0.6, 4))
 	_add_platform(Vector3(0, 4.0, -16), Vector3(4, 0.6, 4))
