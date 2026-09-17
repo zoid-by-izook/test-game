@@ -1,0 +1,40 @@
+name: Release Drafter
+
+# Keeps a draft release's notes up to date as PRs merge to main.
+# Publishing a version stays a deliberate step: bump VERSION, tag vX.Y.Z,
+# publish the release.
+
+on:
+  push:
+    branches:
+      - main
+  # pull_request event is required for the autolabeler
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update_release_draft:
+    name: Update release draft
+    runs-on: ubuntu-latest
+    steps:
+      - uses: release-drafter/release-drafter@v7
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  autolabel:
+    name: Autolabel PR
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: release-drafter/release-drafter/autolabeler@v7
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
