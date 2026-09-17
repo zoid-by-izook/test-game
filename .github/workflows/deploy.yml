@@ -83,14 +83,18 @@ jobs:
                 // The engine removes #status when boot completes.
                 await page.waitForFunction(() => !document.getElementById('status'),
                                            {timeout: 180000, polling: 1000});
-                // Then wait for 90 presented frames so software-rendered 3D
-                // (incl. first-use shader compiles) actually lands on screen.
-                // Frame-count, not wall-clock: adapts to slow SwiftShader.
+                // Then wait for 90 presented frames AND 30s wall-clock so
+                // software-rendered 3D (incl. first-use shader compiles)
+                // actually lands on screen. Frame-count alone is not enough:
+                // rAF can fire much faster than SwiftShader completes frames.
                 await page.waitForFunction(() => {
                   return new Promise((resolve) => {
+                    const start = performance.now();
                     let frames = 0;
                     const tick = () => {
-                      if (++frames >= 90) { resolve(true); }
+                      frames++;
+                      const elapsed = performance.now() - start;
+                      if (frames >= 90 && elapsed >= 30000) { resolve(true); }
                       else { requestAnimationFrame(tick); }
                     };
                     requestAnimationFrame(tick);
