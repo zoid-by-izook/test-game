@@ -26,6 +26,8 @@ concurrency:
 jobs:
   build:
     name: Export Web build
+    # On PR close only the preview cleanup needs to run -- skip the export.
+    if: github.event.action != 'closed'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout source
