@@ -34,6 +34,18 @@ func _run() -> void:
 		if child is PlatformerPlayer:
 			_player = child
 	_check(_player != null, "player spawned")
+
+	# Start menu: visible on boot, game starts on dismissal.
+	print("SMOKE: stage start-menu")
+	var menu: Control = _game.get_node("UI/StartMenu")
+	_check(menu.visible, "start menu shown on boot")
+	_check(not _game.is_started(), "game not started before dismissal")
+	await _shot("00-start-menu")
+	_game.start_game()
+	_check(not menu.visible, "start menu hidden after dismissal")
+	_check(_game.is_started(), "game started after dismissal")
+	_check(_player.controls_enabled, "player controls enabled after dismissal")
+
 	await _physics_frames(90)
 	_check(_player.is_on_floor(), "player resting on floor")
 	await _shot("01-spawned")

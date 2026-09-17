@@ -100,6 +100,10 @@ jobs:
                     requestAnimationFrame(tick);
                   });
                 }, {timeout: 180000, polling: 1000});
+                // Dismiss the start menu so screenshots show gameplay, then
+                // give the scene a moment to settle before capturing.
+                await page.keyboard.press('Enter');
+                await new Promise((r) => setTimeout(r, 3000));
                 await page.screenshot({path: 'website-screenshots/' + name});
                 await page.close();
               } finally {

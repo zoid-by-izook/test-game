@@ -1,7 +1,8 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/game.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/follow_camera.gd" id="2"]
+[ext_resource type="Script" path="res://scripts/start_menu.gd" id="3"]
 
 [sub_resource type="ProceduralSkyMaterial" id="sky_mat"]
 sky_top_color = Color(0.3, 0.5, 0.8, 1)
@@ -53,3 +54,59 @@ offset_bottom = 60.0
 theme_override_font_sizes/font_size = 72
 horizontal_alignment = 1
 text = "YOU WIN!"
+
+[node name="StartMenu" type="Control" parent="UI"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("3")
+
+[node name="Dim" type="ColorRect" parent="UI/StartMenu"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.02, 0.03, 0.06, 0.82)
+
+[node name="Center" type="CenterContainer" parent="UI/StartMenu"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBox" type="VBoxContainer" parent="UI/StartMenu/Center"]
+alignment = 1
+theme_override_constants/separation = 18
+
+[node name="Title" type="Label" parent="UI/StartMenu/Center/VBox"]
+theme_override_font_sizes/font_size = 48
+horizontal_alignment = 1
+text = "GRAYBOX PLATFORMER"
+
+[node name="Subtitle" type="Label" parent="UI/StartMenu/Center/VBox"]
+theme_override_colors/font_color = Color(0.62, 0.68, 0.78, 1)
+theme_override_font_sizes/font_size = 24
+horizontal_alignment = 1
+text = "A minimal 3D platformer scaffold in Godot 4."
+
+[node name="Controls" type="Label" parent="UI/StartMenu/Center/VBox"]
+theme_override_font_sizes/font_size = 26
+horizontal_alignment = 1
+text = "WASD / Arrow keys — move    Space — jump"
+
+[node name="StartButton" type="Button" parent="UI/StartMenu/Center/VBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(300, 84)
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 36
+text = "▶  START"
+
+[node name="Hint" type="Label" parent="UI/StartMenu/Center/VBox"]
+theme_override_colors/font_color = Color(0.55, 0.6, 0.68, 1)
+theme_override_font_sizes/font_size = 20
+horizontal_alignment = 1
+text = "or press any key"
