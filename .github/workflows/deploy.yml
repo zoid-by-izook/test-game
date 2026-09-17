@@ -86,6 +86,17 @@ jobs:
               });
               try {
                 const page = await browser.newPage();
+                // Capture console output so a boot failure leaves evidence
+                // instead of just a timeout.
+                const logs = [];
+                page.on('console', (msg) => logs.push(`[${msg.type()}] ${msg.text()}`));
+                page.on('pageerror', (err) => logs.push(`[pageerror] ${err.message}`));
+                const dumpLogs = () => {
+                  require('fs').writeFileSync(
+                    'website-screenshots/console-' + name.replace('.png', '.log'),
+                    logs.join('\n') + '\n');
+                };
+                process.on('uncaughtException', (e) => { dumpLogs(); throw e; });
                 await page.setViewport({width: w, height: h});
                 await page.goto('http://127.0.0.1:8901/index.html', {waitUntil: 'load'});
                 // The engine removes #status when boot completes.
@@ -128,6 +139,7 @@ jobs:
                 await page.screenshot({path: 'website-screenshots/' + name.replace('.png', '-credits.png')});
                 await page.close();
               } finally {
+                try { dumpLogs(); } catch (e) { /* best effort */ }
                 await browser.close();
               }
             }
