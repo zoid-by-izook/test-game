@@ -105,6 +105,19 @@ jobs:
                 await page.keyboard.press('Enter');
                 await new Promise((r) => setTimeout(r, 3000));
                 await page.screenshot({path: 'website-screenshots/' + name});
+                // Credits evidence: every art PR updates the credits card, so
+                // scroll it into view and capture it alongside the standard
+                // website screenshots.
+                await page.evaluate(() => {
+                  for (const el of document.querySelectorAll('.detail-card h2')) {
+                    if (el.textContent.trim() === 'Credits') {
+                      el.scrollIntoView({block: 'center'});
+                      break;
+                    }
+                  }
+                });
+                await new Promise((r) => setTimeout(r, 1500));
+                await page.screenshot({path: 'website-screenshots/' + name.replace('.png', '-credits.png')});
                 await page.close();
               } finally {
                 await browser.close();
