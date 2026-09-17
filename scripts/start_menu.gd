@@ -18,11 +18,6 @@ const CREDITS: Array = [
 		"artist": "Quaternius",
 		"license": "CC0 1.0 Universal",
 	},
-	{
-		"title": "Game code & level design",
-		"artist": "Zoid",
-		"license": "All original",
-	},
 ]
 
 
