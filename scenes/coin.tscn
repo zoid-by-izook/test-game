@@ -1,19 +1,10 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/coin.gd" id="1"]
+[ext_resource type="PackedScene" path="res://assets/quaternius/Coin.gltf" id="2"]
 
 [sub_resource type="SphereShape3D" id="shape"]
 radius = 0.5
-
-[sub_resource type="StandardMaterial3D" id="mat"]
-albedo_color = Color(0.95, 0.75, 0.2, 1)
-metallic = 0.6
-roughness = 0.35
-
-[sub_resource type="SphereMesh" id="mesh"]
-material = SubResource("mat")
-radius = 0.45
-height = 0.9
 
 [node name="Coin" type="Area3D"]
 script = ExtResource("1")
@@ -21,5 +12,5 @@ script = ExtResource("1")
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 shape = SubResource("shape")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
-mesh = SubResource("mesh")
+[node name="CoinModel" parent="." instance=ExtResource("2")]
+transform = Transform3D(0.5, 0, 0, 0, 0.5, 0, 0, 0, 0.5, 0, 0, 0)

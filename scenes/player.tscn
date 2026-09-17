@@ -1,17 +1,9 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/player.gd" id="1"]
+[ext_resource type="PackedScene" path="res://assets/quaternius/Character.gltf" id="2"]
 
 [sub_resource type="CapsuleShape3D" id="shape"]
-radius = 0.4
-height = 1.2
-
-[sub_resource type="StandardMaterial3D" id="mat"]
-albedo_color = Color(0.62, 0.63, 0.66, 1)
-roughness = 0.85
-
-[sub_resource type="CapsuleMesh" id="mesh"]
-material = SubResource("mat")
 radius = 0.4
 height = 1.2
 
@@ -22,6 +14,5 @@ script = ExtResource("1")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
 shape = SubResource("shape")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
-mesh = SubResource("mesh")
+[node name="CharacterModel" parent="." instance=ExtResource("2")]
+transform = Transform3D(0.32, 0, 0, 0, 0.32, 0, 0, 0, 0.32, 0, 0, 0)
