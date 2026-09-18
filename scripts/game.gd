@@ -13,6 +13,8 @@ const GOAL_SCENE: PackedScene = preload("res://scenes/goal.tscn")
 const PLATFORM_MODEL: PackedScene = preload("res://assets/quaternius/Cube_Grass_Single.gltf")
 const ISLAND_MODEL: PackedScene = preload("res://assets/quaternius/Cube_Grass_Single.gltf")
 const OCEAN_SHADER: Shader = preload("res://assets/water/ocean.gdshader")
+## Tileable fBm noise driving the ocean's organic variation (swell, whitecaps, foam).
+const OCEAN_NOISE: Texture2D = preload("res://assets/water/noise_fbm.png")
 ## Cube_Grass_Single measures ~2.23 x 2.0 x 2.23 units.
 const PLATFORM_BASE_SIZE := Vector3(2.23, 2.0, 2.23)
 ## Island: two stepped layers of grass cubes centered near the spawn area.
@@ -221,6 +223,7 @@ func _build_ocean() -> void:
 	plane.subdivide_depth = 96
 	var material := ShaderMaterial.new()
 	material.shader = OCEAN_SHADER
+	material.set_shader_parameter("noise_tex", OCEAN_NOISE)
 	var water := MeshInstance3D.new()
 	water.name = "Ocean"
 	water.mesh = plane
