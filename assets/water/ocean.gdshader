@@ -20,7 +20,7 @@ uniform float sdf_max_dist = 12.0;
 uniform vec2 ocean_offset = vec2(0.0, -6.0);
 uniform float wave_height = 0.45;
 uniform float wave_speed = 1.1;
-uniform float foam_width = 2.15;
+uniform float foam_width = 2.4;
 
 varying vec2 pos_xz;
 
@@ -81,7 +81,11 @@ void fragment() {
 	float foam_n = texture(noise_tex, pos_xz * 0.06 + vec2(t * 0.05, t * 0.035)).b;
 	float pulse = 0.5 + 0.5 * sin(t * 2.0 - shore_d * 2.2);
 	float shore_foam = band * smoothstep(0.30, 0.72, foam_n * 0.65 + pulse * 0.35);
-	col = mix(col, foam_color.rgb, clamp(shore_foam, 0.0, 1.0) * 0.95);
+	// Foam color: sharp blue -> white gradient across the band (blue near the
+	// cubes, white at the outer edge) for a crisper read.
+	float foam_t = smoothstep(0.3, 1.3, shore_d);
+	vec3 foam_col = mix(dark_blue.rgb, foam_color.rgb, foam_t);
+	col = mix(col, foam_col, clamp(shore_foam, 0.0, 1.0) * 0.95);
 
 	ALBEDO = col;
 	ROUGHNESS = 0.35;

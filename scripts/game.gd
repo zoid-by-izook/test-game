@@ -19,7 +19,7 @@ const OCEAN_NOISE: Texture2D = preload("res://assets/water/noise_fbm.png")
 ## SDF_SIZE x SDF_SIZE meters centered on SDF_CENTER; each texel stores
 ## signed meters to the shore edge. World-space so extra islands just add
 ## land cells — no shader changes.
-const SDF_RES := 128
+const SDF_RES := 256
 const SDF_SIZE := 150.0
 const SDF_CENTER := Vector2(0.0, -6.0)
 const SDF_MAX_DIST := 12.0
