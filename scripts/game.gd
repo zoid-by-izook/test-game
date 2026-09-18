@@ -1,25 +1,42 @@
 extends Node3D
-## Root of the graybox level. Builds the ground, floating platforms,
+## Root of the graybox level. Builds the island, flat water plane, floating platforms,
 ## coins, and goal from code; spawns the player; tracks the coin counter;
 ## shows the win label; respawns the player when they fall off the world.
 
 const PLAYER_SCENE: PackedScene = preload("res://scenes/player.tscn")
 const COIN_SCENE: PackedScene = preload("res://scenes/coin.tscn")
 const GOAL_SCENE: PackedScene = preload("res://scenes/goal.tscn")
-## Quaternius grass blocks, scaled to each platform's size. Collision stays
-## an exact box. The ground uses the flat "Center" tile (top face only —
-## the camera never sees its sides); floating platforms use the closed
-## "Single" cube so they look right from every angle.
-const GROUND_MODEL: PackedScene = preload("res://assets/quaternius/Cube_Grass_Center.gltf")
+## Quaternius grass blocks. Floating platforms use the closed "Single" cube
+## (scaled to size) so they look right from every angle; the island below is
+## many unscaled Single cubes arranged as a rounded, stepped blob via a
+## MultiMesh, with one StaticBody3D holding a collision box per top cube.
 const PLATFORM_MODEL: PackedScene = preload("res://assets/quaternius/Cube_Grass_Single.gltf")
+const ISLAND_MODEL: PackedScene = preload("res://assets/quaternius/Cube_Grass_Single.gltf")
 ## Cube_Grass_Single measures ~2.23 x 2.0 x 2.23 units.
 const PLATFORM_BASE_SIZE := Vector3(2.23, 2.0, 2.23)
+## Island: two stepped layers of grass cubes centered near the spawn area.
+## The top layer's edge is jittered per-column so the shoreline is not a
+## perfect circle.
+const ISLAND_CUBE := 2.23
+const ISLAND_CENTER := Vector3(0.0, 0.0, -6.0)
+## Max shoreline shape multiplier (1.0 + sum of _island_shape amplitudes),
+## used to size the build grid so lobes aren't cut off.
+const ISLAND_SHAPE_MAX := 1.5
+const ISLAND_LAYERS := [
+	{"top_y": 0.0, "radius": 20.0},
+	{"top_y": -2.0, "radius": 17.5},
+]
+const OCEAN_Y := -1.0
+const OCEAN_SIZE := 600.0
 
 const SPAWN := Vector3(0.0, 1.5, 6.0)
-const KILL_Y := -12.0
+## Just below the ocean surface: touching the water respawns the player.
+const KILL_Y := -2.0
 
 var _coins_total := 0
 var _coins_got := 0
+## World-xz of top-layer island cubes, collected during _build_island().
+var _top_layer_cubes: Array[Vector2] = []
 var _player: PlatformerPlayer
 var _started := false
 
@@ -105,7 +122,8 @@ func _process(_delta: float) -> void:
 
 
 func _build_level() -> void:
-	_add_platform(Vector3(0, -0.5, 0), Vector3(60, 1, 60), true)
+	_build_island()
+	_build_ocean()
 	_add_platform(Vector3(0, 1.0, -8), Vector3(5, 0.6, 5))
 	_add_platform(Vector3(6, 2.5, -12), Vector3(4, 0.6, 4))
 	_add_platform(Vector3(0, 4.0, -16), Vector3(4, 0.6, 4))
@@ -132,23 +150,125 @@ func _build_level() -> void:
 	add_child(goal)
 
 
-func _add_platform(pos: Vector3, size: Vector3, is_ground := false) -> void:
+func _add_platform(pos: Vector3, size: Vector3) -> void:
 	var body := StaticBody3D.new()
 	body.position = pos
 	var collision := CollisionShape3D.new()
 	var box_shape := BoxShape3D.new()
 	box_shape.size = size
 	collision.shape = box_shape
-	var model: Node3D
-	if is_ground:
-		model = GROUND_MODEL.instantiate()
-		model.scale = size / 2.0
-	else:
-		model = PLATFORM_MODEL.instantiate()
-		model.scale = size / PLATFORM_BASE_SIZE
+	var model: Node3D = PLATFORM_MODEL.instantiate()
+	model.scale = size / PLATFORM_BASE_SIZE
 	body.add_child(collision)
 	body.add_child(model)
 	add_child(body)
+
+
+## Island shoreline shape: angular modulation for an irregular (non-circular)
+## coastline with lobes and inlets. Returns a multiplier on the layer radius.
+## Deterministic — same angle always gives the same shape.
+func _island_shape(angle: float) -> float:
+	return 1.0 + 0.35 * sin(2.0 * angle + 0.8) + 0.15 * sin(3.0 * angle + 1.7)
+
+
+## Builds the island: grass cubes in stepped circular layers merged into a
+## single ArrayMesh (one draw call, no instancing — MultiMesh hangs
+## SwiftShader's WebGL2 during boot) plus one StaticBody3D with a collision
+## box per top-layer cube.
+func _build_island() -> void:
+	var cube_mesh := _extract_mesh(ISLAND_MODEL)
+	var transforms: Array[Transform3D] = []
+	var body := StaticBody3D.new()
+	body.name = "IslandBody"
+	for layer_index in ISLAND_LAYERS.size():
+		var layer: Dictionary = ISLAND_LAYERS[layer_index]
+		var top_y: float = layer["top_y"]
+		var radius: float = layer["radius"]
+		var center_y := top_y - 1.0
+		var extent := int(ceil(radius * ISLAND_SHAPE_MAX * 1.08 / ISLAND_CUBE)) + 1
+		for ix in range(-extent, extent + 1):
+			for iz in range(-extent, extent + 1):
+				var x := ISLAND_CENTER.x + float(ix) * ISLAND_CUBE
+				var z := ISLAND_CENTER.z + float(iz) * ISLAND_CUBE
+				var dist := Vector2(x - ISLAND_CENTER.x, z - ISLAND_CENTER.z).length()
+				var angle := atan2(z - ISLAND_CENTER.z, x - ISLAND_CENTER.x)
+				var edge := radius * _island_shape(angle) * (0.92 + 0.16 * _hash2(ix, iz))
+				if dist > edge:
+					continue
+				var cube_pos := Vector3(x, center_y, z)
+				transforms.append(Transform3D(Basis(), cube_pos))
+				if layer_index == 0:
+					_top_layer_cubes.append(Vector2(x, z))
+					var shape := CollisionShape3D.new()
+					var box := BoxShape3D.new()
+					box.size = Vector3(ISLAND_CUBE, 2.0, ISLAND_CUBE)
+					shape.shape = box
+					shape.position = cube_pos
+					body.add_child(shape)
+	# Merge the cube mesh into a single ArrayMesh (one draw call, no
+	# instancing). MultiMesh instancing hangs SwiftShader's WebGL2 during
+	# boot; a merged mesh renders identically and works everywhere.
+	var merged := ArrayMesh.new()
+	var surface_count := cube_mesh.get_surface_count()
+	for s in surface_count:
+		var tool := SurfaceTool.new()
+		tool.begin(Mesh.PRIMITIVE_TRIANGLES)
+		tool.set_material(cube_mesh.surface_get_material(s))
+		for t in transforms:
+			tool.append_from(cube_mesh, s, t)
+		tool.commit(merged)
+	var visual := MeshInstance3D.new()
+	visual.name = "IslandVisual"
+	visual.mesh = merged
+	visual.custom_aabb = AABB(Vector3(-25, -5, -33), Vector3(50, 8, 54))
+	add_child(visual)
+	add_child(body)
+
+
+## Bakes a world-space signed distance field of the island shoreline from
+## the recorded top-layer cube footprints. Each texel stores signed meters
+## to the nearest shore edge (positive in water, negative inside the
+## island), encoded 0..1. The ocean shader samples this so foam hugs the
+## actual cube edges instead of an analytic circle.
+## Builds the ocean: a flat blue plane. No waves or shader yet — that
+## comes in the ocean PR. It has no collision; falling in hits KILL_Y.
+func _build_ocean() -> void:
+	var plane := PlaneMesh.new()
+	plane.size = Vector2(OCEAN_SIZE, OCEAN_SIZE)
+	var material := StandardMaterial3D.new()
+	material.albedo_color = Color(0.04, 0.20, 0.42)
+	material.roughness = 0.35
+	var water := MeshInstance3D.new()
+	water.name = "Ocean"
+	water.mesh = plane
+	water.material_override = material
+	water.position = Vector3(ISLAND_CENTER.x, OCEAN_Y, ISLAND_CENTER.z)
+	add_child(water)
+
+func _extract_mesh(packed: PackedScene) -> Mesh:
+	var probe := packed.instantiate()
+	var mesh_instance := _find_mesh_instance(probe)
+	var mesh := mesh_instance.mesh
+	probe.queue_free()
+	return mesh
+
+
+func _find_mesh_instance(node: Node) -> MeshInstance3D:
+	if node is MeshInstance3D:
+		return node
+	for child in node.get_children():
+		var found := _find_mesh_instance(child)
+		if found != null:
+			return found
+	return null
+
+
+## Deterministic 0..1 hash for shoreline jitter (stable across runs).
+func _hash2(x: int, z: int) -> float:
+	var h := x * 374761393 + z * 668265263 + 974711
+	h = (h ^ (h >> 13)) * 1274126177
+	h = h ^ (h >> 16)
+	return float(h & 0xffff) / 65535.0
 
 
 func _on_coin_collected(_coin: Coin) -> void:
