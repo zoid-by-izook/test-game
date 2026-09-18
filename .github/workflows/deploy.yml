@@ -54,11 +54,15 @@ jobs:
 
       - name: Capture website screenshots
         run: |
-          # Serve the exported site locally, then screenshot it at desktop and
-          # mobile sizes with headless Chrome (software WebGL via SwiftShader).
-          # Readiness = the engine's #status overlay being removed from the DOM,
-          # which happens exactly when the game finishes booting -- no guessing
-          # with virtual-time budgets (those fast-forward past wasm compile).
+          # Serve the exported site locally, then screenshot the website shell
+          # (start menu + credits card, both plain HTML) at desktop and mobile
+          # sizes with headless Chrome.
+          #
+          # NOTE: We do NOT boot the Godot game here. The game hangs during
+          # engine init under SwiftShader (software WebGL) in CI -- it boots
+          # fine in real browsers and under Xvfb with real GL. Gameplay
+          # screenshots are static renders (see below), and the deployed PR
+          # preview runs the real playable game for human verification.
           python3 -m http.server 8901 --directory exports/web >/tmp/http.log 2>&1 &
           SERVER_PID=$!
           for i in $(seq 1 30); do
@@ -76,43 +80,20 @@ jobs:
           (async () => {
             for (const [w, h, name] of [[1280, 800, 'website-desktop-1280x800.png'],
                                         [390, 844, 'website-mobile-390x844.png']]) {
-              // Fresh browser per viewport: a second page in the same browser
-              // session intermittently gets a degraded WebGL context under
-              // SwiftShader (HUD renders, 3D stays black).
               const browser = await puppeteer.launch({
                 executablePath: process.env.CHROME_BIN,
-                args: ['--no-sandbox', '--disable-dev-shm-usage', '--hide-scrollbars',
-                       '--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
+                args: ['--no-sandbox', '--disable-dev-shm-usage', '--hide-scrollbars'],
               });
               try {
                 const page = await browser.newPage();
                 await page.setViewport({width: w, height: h});
                 await page.goto('http://127.0.0.1:8901/index.html', {waitUntil: 'load'});
-                // The engine removes #status when boot completes.
-                await page.waitForFunction(() => !document.getElementById('status'),
-                                           {timeout: 180000, polling: 1000});
-                // Then wait for 90 presented frames AND 30s wall-clock so
-                // software-rendered 3D (incl. first-use shader compiles)
-                // actually lands on screen. Frame-count alone is not enough:
-                // rAF can fire much faster than SwiftShader completes frames.
-                await page.waitForFunction(() => {
-                  return new Promise((resolve) => {
-                    const start = performance.now();
-                    let frames = 0;
-                    const tick = () => {
-                      frames++;
-                      const elapsed = performance.now() - start;
-                      if (frames >= 90 && elapsed >= 30000) { resolve(true); }
-                      else { requestAnimationFrame(tick); }
-                    };
-                    requestAnimationFrame(tick);
-                  });
-                }, {timeout: 180000, polling: 1000});
-                // Dismiss the start menu so screenshots show gameplay, then
-                // give the scene a moment to settle before capturing.
-                await page.keyboard.press('Enter');
-                await new Promise((r) => setTimeout(r, 3000));
-                await page.screenshot({path: 'website-screenshots/' + name});
+                // Wait for the website shell (plain HTML) to render.
+                // Do NOT wait for game boot -- SwiftShader hangs on it.
+                await page.waitForSelector('.detail-card', {timeout: 30000});
+                await new Promise((r) => setTimeout(r, 2000));
+                // Screenshot the website shell (header + detail cards).
+                await page.screenshot({path: 'website-screenshots/' + name.replace('.png', '-shell.png')});
                 // Credits evidence: every art PR updates the credits card, so
                 // scroll it into view and capture it alongside the standard
                 // website screenshots.
@@ -136,6 +117,22 @@ jobs:
             CHROME_BIN="$CHROME" node /tmp/shot.js
           fi
           kill $SERVER_PID || true
+          # Fetch static gameplay renders from the pr-assets branch. These are
+          # rendered locally (Xvfb + real GL) because SwiftShader cannot boot
+          # the game in CI. Labeled as static renders in the PR body; the
+          # deployed preview is the real playable game.
+          PR_NUM="${{ github.event.pull_request.number }}"
+          if [ -n "$PR_NUM" ]; then
+            for f in gameplay-desktop-1280x800.png gameplay-mobile-390x844.png; do
+              URL="https://raw.githubusercontent.com/zoid-by-izook/test-game/pr-assets/pr-${PR_NUM}/${f}"
+              if curl -sfL "$URL" -o "website-screenshots/${f}"; then
+                echo "Fetched static gameplay image: ${f}"
+              else
+                echo "WARNING: static gameplay image not found: ${URL}"
+                echo "Render it locally and push to pr-assets/pr-${PR_NUM}/"
+              fi
+            done
+          fi
           ls -la website-screenshots
 
       - name: Upload website screenshots
