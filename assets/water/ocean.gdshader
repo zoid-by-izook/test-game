@@ -88,7 +88,7 @@ void fragment() {
 	// are thick near the cubes and taper to thin wisps further out. Only
 	// the brightest noise peaks survive at the outer edge.
 	float dist_t = clamp(shore_d / foam_width, 0.0, 1.0);
-	float thresh = mix(0.52, 0.72, dist_t);
+	float thresh = mix(0.60, 0.80, dist_t);
 	float shore_foam = band * smoothstep(thresh, thresh + 0.04, foam_n * 0.65 + pulse * 0.35);
 	// Foam is white; the ocean's blue shows through where the foam is thin,
 	// giving a natural blue->white read without an invisible buffer.
