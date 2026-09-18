@@ -5,9 +5,9 @@ shader_type spatial;
 // deep->crest gradient, noise-broken whitecaps, and an animated foam ring
 // where the water meets the island.
 
-uniform vec4 deep_color : source_color = vec4(0.04, 0.23, 0.52, 1.0);
-uniform vec4 mid_color : source_color = vec4(0.10, 0.42, 0.72, 1.0);
-uniform vec4 crest_color : source_color = vec4(0.30, 0.68, 0.88, 1.0);
+uniform vec4 deep_color : source_color = vec4(0.02, 0.12, 0.32, 1.0);
+uniform vec4 mid_color : source_color = vec4(0.04, 0.20, 0.45, 1.0);
+uniform vec4 crest_color : source_color = vec4(0.07, 0.30, 0.58, 1.0);
 uniform vec4 foam_color : source_color = vec4(0.93, 0.97, 1.0, 1.0);
 uniform float wave_height = 0.45;
 uniform float wave_speed = 1.1;
@@ -63,11 +63,12 @@ void fragment() {
 	vec3 col = mix(deep_color.rgb, mid_color.rgb, smoothstep(0.0, 0.55, wave_t));
 	col = mix(col, crest_color.rgb, smoothstep(0.55, 0.85, wave_t));
 
-	// Whitecaps: foam white where waves peak, broken up by drifting noise
-	// so caps appear and dissolve organically instead of as a flat band.
+	// Whitecaps: only the very sharpest peaks get a whisper of foam white.
+	// The threshold sits near the top of the wave range so caps are rare,
+	// and the mix is low so they read as a glint, not a wash.
 	float cap_n = vnoise(pos_xz * 0.55 + vec2(t * 0.25, -t * 0.20));
-	float whitecap = smoothstep(0.80, 0.95, wave_t + (cap_n - 0.5) * 0.30);
-	col = mix(col, foam_color.rgb, whitecap * 0.9);
+	float whitecap = smoothstep(0.92, 0.985, wave_t + (cap_n - 0.5) * 0.20);
+	col = mix(col, foam_color.rgb, whitecap * 0.55);
 
 	// Shore foam: an animated ring hugging the island. Distance from the
 	// island center minus the top-layer radius gives signed shore distance;
