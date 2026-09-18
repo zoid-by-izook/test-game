@@ -10,13 +10,16 @@ uniform vec4 dark_blue : source_color = vec4(0.06, 0.26, 0.52, 1.0);
 uniform vec4 foam_color : source_color = vec4(0.93, 0.97, 1.0, 1.0);
 // Tileable fBm noise texture (R: swell, G: whitecap patchiness, B: foam).
 uniform sampler2D noise_tex : filter_linear, repeat_enable;
+// Baked world-space shoreline distance field (R: signed meters to shore,
+// positive in water). Foam hugs the real cube edges, not an analytic shape.
+uniform sampler2D shore_sdf : filter_linear;
+uniform vec2 sdf_min = vec2(-75.0, -81.0);
+uniform float sdf_size = 150.0;
+uniform float sdf_max_dist = 12.0;
+// Ocean mesh position (xz): converts shader-local pos_xz to world xz.
+uniform vec2 ocean_offset = vec2(0.0, -6.0);
 uniform float wave_height = 0.45;
 uniform float wave_speed = 1.1;
-// Island shoreline (analytic circle). The water mesh is centered on the
-// island, so the island sits at local (0, 0); radius matches the top
-// grass layer. Foam band straddles the jittered cube edge.
-uniform vec2 island_center = vec2(0.0, 0.0);
-uniform float island_radius = 20.0;
 uniform float foam_width = 3.5;
 
 varying vec2 pos_xz;
@@ -67,11 +70,13 @@ void fragment() {
 	float white = clamp(step(0.999, wv) + step(wv, 0.001), 0.0, 1.0);
 	col = mix(col, foam_color.rgb, white);
 
-	// Shore foam: an animated ring hugging the island. Distance from the
-	// island center minus the top-layer radius gives signed shore distance;
-	// the band is widened to cover the jittered cube edge, then carved by
-	// noise and a traveling pulse so it laps at the cubes.
-	float shore_d = length(pos_xz - island_center) - island_radius;
+	// Shore foam: distance sampled from the baked shoreline SDF, so it hugs
+	// the actual cube edges. shore_d > 0 in water, < 0 inside the island.
+	// The band straddles the edge, carved by noise and a traveling pulse
+	// so it laps at the cubes.
+	vec2 world_xz = pos_xz + ocean_offset;
+	vec2 sdf_uv = clamp((world_xz - sdf_min) / sdf_size, 0.0, 1.0);
+	float shore_d = (texture(shore_sdf, sdf_uv).r * 2.0 - 1.0) * sdf_max_dist;
 	float band = 1.0 - smoothstep(0.0, foam_width, abs(shore_d - 0.8));
 	float foam_n = texture(noise_tex, pos_xz * 0.06 + vec2(t * 0.05, t * 0.035)).b;
 	float pulse = 0.5 + 0.5 * sin(t * 2.0 - shore_d * 2.2);

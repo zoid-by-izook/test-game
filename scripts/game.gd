@@ -15,6 +15,14 @@ const ISLAND_MODEL: PackedScene = preload("res://assets/quaternius/Cube_Grass_Si
 const OCEAN_SHADER: Shader = preload("res://assets/water/ocean.gdshader")
 ## Tileable fBm noise driving the ocean's organic variation (swell, whitecaps, foam).
 const OCEAN_NOISE: Texture2D = preload("res://assets/water/noise_fbm.png")
+## Shoreline SDF: world-space bake of the island footprint. Covers
+## SDF_SIZE x SDF_SIZE meters centered on SDF_CENTER; each texel stores
+## signed meters to the shore edge. World-space so extra islands just add
+## land cells — no shader changes.
+const SDF_RES := 128
+const SDF_SIZE := 150.0
+const SDF_CENTER := Vector2(0.0, -6.0)
+const SDF_MAX_DIST := 12.0
 ## Cube_Grass_Single measures ~2.23 x 2.0 x 2.23 units.
 const PLATFORM_BASE_SIZE := Vector3(2.23, 2.0, 2.23)
 ## Island: two stepped layers of grass cubes centered near the spawn area.
@@ -35,6 +43,10 @@ const KILL_Y := -2.0
 
 var _coins_total := 0
 var _coins_got := 0
+## World-xz of top-layer island cubes, collected during _build_island().
+var _top_layer_cubes: Array[Vector2] = []
+## Baked shoreline distance texture, created by _bake_shore_sdf().
+var _shore_sdf: ImageTexture
 var _player: PlatformerPlayer
 var _started := false
 
@@ -121,6 +133,7 @@ func _process(_delta: float) -> void:
 
 func _build_level() -> void:
 	_build_island()
+	_bake_shore_sdf()
 	_build_ocean()
 	_add_platform(Vector3(0, 1.0, -8), Vector3(5, 0.6, 5))
 	_add_platform(Vector3(6, 2.5, -12), Vector3(4, 0.6, 4))
@@ -188,6 +201,7 @@ func _build_island() -> void:
 				var cube_pos := Vector3(x, center_y, z)
 				transforms.append(Transform3D(Basis(), cube_pos))
 				if layer_index == 0:
+					_top_layer_cubes.append(Vector2(x, z))
 					var shape := CollisionShape3D.new()
 					var box := BoxShape3D.new()
 					box.size = Vector3(ISLAND_CUBE, 2.0, ISLAND_CUBE)
@@ -214,6 +228,83 @@ func _build_island() -> void:
 	add_child(body)
 
 
+## Bakes a world-space signed distance field of the island shoreline from
+## the recorded top-layer cube footprints. Each texel stores signed meters
+## to the nearest shore edge (positive in water, negative inside the
+## island), encoded 0..1. The ocean shader samples this so foam hugs the
+## actual cube edges instead of an analytic circle.
+func _bake_shore_sdf() -> void:
+	var res := SDF_RES
+	var grid := PackedByteArray()
+	grid.resize(res * res) # 0 = water, 1 = land
+	var sdf_min := SDF_CENTER - Vector2(SDF_SIZE, SDF_SIZE) * 0.5
+	var half_cube := ISLAND_CUBE * 0.5
+	for c in _top_layer_cubes:
+		var x0 := int((c.x - half_cube - sdf_min.x) / SDF_SIZE * res)
+		var x1 := int((c.x + half_cube - sdf_min.x) / SDF_SIZE * res)
+		var z0 := int((c.y - half_cube - sdf_min.y) / SDF_SIZE * res)
+		var z1 := int((c.y + half_cube - sdf_min.y) / SDF_SIZE * res)
+		for gz in range(maxi(z0, 0), mini(z1, res - 1) + 1):
+			for gx in range(maxi(x0, 0), mini(x1, res - 1) + 1):
+				grid[gz * res + gx] = 1
+	var dist_to_land := _chamfer(grid, res, false)
+	var dist_to_water := _chamfer(grid, res, true)
+	var cell := SDF_SIZE / res
+	var img := Image.create(res, res, false, Image.FORMAT_R8)
+	for z in res:
+		for x in res:
+			var i := z * res + x
+			var d: float
+			if grid[i] == 1:
+				d = -dist_to_water[i] * cell
+			else:
+				d = dist_to_land[i] * cell
+			var v := clampf(d / SDF_MAX_DIST * 0.5 + 0.5, 0.0, 1.0)
+			img.set_pixel(x, z, Color(v, v, v))
+	_shore_sdf = ImageTexture.create_from_image(img)
+
+
+## Two-pass chamfer distance transform. Returns per-cell distance (in cells)
+## to the nearest cell where grid == 1 (or != 1 when invert is true).
+func _chamfer(grid: PackedByteArray, res: int, invert: bool) -> PackedFloat32Array:
+	var dist := PackedFloat32Array()
+	dist.resize(res * res)
+	for i in res * res:
+		var target := grid[i] == 1
+		dist[i] = 0.0 if (target != invert) else 1e9
+	for z in res:
+		for x in res:
+			var i := z * res + x
+			if dist[i] == 0.0:
+				continue
+			var b := dist[i]
+			if x > 0:
+				b = minf(b, dist[i - 1] + 1.0)
+			if z > 0:
+				b = minf(b, dist[i - res] + 1.0)
+				if x > 0:
+					b = minf(b, dist[i - res - 1] + 1.41421356)
+				if x < res - 1:
+					b = minf(b, dist[i - res + 1] + 1.41421356)
+			dist[i] = b
+	for z in range(res - 1, -1, -1):
+		for x in range(res - 1, -1, -1):
+			var i := z * res + x
+			if dist[i] == 0.0:
+				continue
+			var b := dist[i]
+			if x < res - 1:
+				b = minf(b, dist[i + 1] + 1.0)
+			if z < res - 1:
+				b = minf(b, dist[i + res] + 1.0)
+				if x < res - 1:
+					b = minf(b, dist[i + res + 1] + 1.41421356)
+				if x > 0:
+					b = minf(b, dist[i + res - 1] + 1.41421356)
+			dist[i] = b
+	return dist
+
+
 ## Builds the ocean: one large subdivided plane with the animated stylized
 ## water shader. It has no collision — falling in means hitting KILL_Y.
 func _build_ocean() -> void:
@@ -224,6 +315,11 @@ func _build_ocean() -> void:
 	var material := ShaderMaterial.new()
 	material.shader = OCEAN_SHADER
 	material.set_shader_parameter("noise_tex", OCEAN_NOISE)
+	material.set_shader_parameter("shore_sdf", _shore_sdf)
+	material.set_shader_parameter("sdf_min", SDF_CENTER - Vector2(SDF_SIZE, SDF_SIZE) * 0.5)
+	material.set_shader_parameter("sdf_size", SDF_SIZE)
+	material.set_shader_parameter("sdf_max_dist", SDF_MAX_DIST)
+	material.set_shader_parameter("ocean_offset", Vector2(ISLAND_CENTER.x, ISLAND_CENTER.z))
 	var water := MeshInstance3D.new()
 	water.name = "Ocean"
 	water.mesh = plane
