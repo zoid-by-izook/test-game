@@ -84,13 +84,13 @@ void fragment() {
 	float foam_n = texture(noise_tex, pos_xz * 0.06 + vec2(t * 0.05, t * 0.035)).b;
 	float pulse = 0.5 + 0.5 * sin(t * 2.0 - shore_d * 2.2);
 	float shore_foam = band * smoothstep(0.30, 0.72, foam_n * 0.65 + pulse * 0.35);
-	// Foam color: vivid blue near the cubes, sharp cut to white at the outer
-	// edge. In narrow channels (confined) the transition widens so it doesn't
-	// form a glitchy sharp line.
+	// Foam color: transitions from the ocean's own blue (whatever the waves
+	// are doing at this pixel) to foam white, so blues and whites match the
+	// ocean exactly. In narrow channels the transition widens to avoid a
+	// glitchy sharp line.
 	float trans_width = mix(0.3, 1.8, confined);
 	float foam_t = smoothstep(1.2 - trans_width * 0.5, 1.2 + trans_width * 0.5, shore_d);
-	vec3 foam_blue = vec3(0.10, 0.45, 0.75);
-	vec3 foam_col = mix(foam_blue, foam_color.rgb, foam_t);
+	vec3 foam_col = mix(col, foam_color.rgb, foam_t);
 	col = mix(col, foam_col, clamp(shore_foam, 0.0, 1.0) * 0.95);
 
 	ALBEDO = col;
