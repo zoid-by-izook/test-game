@@ -24,12 +24,12 @@ const ISLAND_LAYERS := [
 	{"top_y": 0.0, "radius": 20.0},
 	{"top_y": -2.0, "radius": 17.5},
 ]
-const OCEAN_Y := -2.8
+const OCEAN_Y := -1.0
 const OCEAN_SIZE := 600.0
 
 const SPAWN := Vector3(0.0, 1.5, 6.0)
 ## Just below the ocean surface: touching the water respawns the player.
-const KILL_Y := -4.0
+const KILL_Y := -2.0
 
 var _coins_total := 0
 var _coins_got := 0
