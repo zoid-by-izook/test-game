@@ -24,23 +24,23 @@ varying vec2 pos_xz;
 // Fractal noise from the texture: three taps at different scales drifting
 // over time, so the pattern never visibly repeats.
 float fbm_at(vec2 p, float t) {
-	vec2 uv = p * 0.018;
-	float n = texture(noise_tex, uv + vec2(t * 0.020, -t * 0.015)).r * 0.55
-		+ texture(noise_tex, uv * 2.7 + vec2(-t * 0.030, t * 0.025)).r * 0.30
-		+ texture(noise_tex, uv * 6.1 + vec2(t * 0.050, t * 0.040)).r * 0.15;
+	vec2 uv = p * 0.006;
+	float n = texture(noise_tex, uv + vec2(t * 0.010, -t * 0.008)).r * 0.55
+		+ texture(noise_tex, uv * 2.7 + vec2(-t * 0.015, t * 0.013)).r * 0.30
+		+ texture(noise_tex, uv * 6.1 + vec2(t * 0.025, t * 0.020)).r * 0.15;
 	return n;
 }
 
-// Six directional waves (varied angles, irrational-ish frequencies) plus
-// strong fBm. `t` is passed in so vertex and fragment evaluate identically.
+// Six wide directional waves (varied angles, irrational-ish frequencies)
+// plus strong fBm. `t` is passed in so vertex and fragment evaluate identically.
 float wave_at(vec2 p, float t) {
-	float s = wave_speed;
-	float w = sin(dot(p, vec2(0.220, 0.050)) + t * s * 1.00)
-		+ 0.60 * sin(dot(p, vec2(-0.080, 0.300)) - t * s * 0.70)
-		+ 0.45 * sin(dot(p, vec2(0.180, -0.220)) + t * s * 1.23)
-		+ 0.35 * sin(dot(p, vec2(-0.310, -0.120)) - t * s * 0.87)
-		+ 0.28 * sin(dot(p, vec2(0.090, 0.410)) + t * s * 1.45)
-		+ 0.22 * sin(dot(p, vec2(-0.450, 0.280)) - t * s * 1.10);
+	float s = wave_speed * 0.5;
+	float w = sin(dot(p, vec2(0.073, 0.017)) + t * s * 1.00)
+		+ 0.60 * sin(dot(p, vec2(-0.027, 0.100)) - t * s * 0.70)
+		+ 0.45 * sin(dot(p, vec2(0.060, -0.073)) + t * s * 1.23)
+		+ 0.35 * sin(dot(p, vec2(-0.103, -0.040)) - t * s * 0.87)
+		+ 0.28 * sin(dot(p, vec2(0.030, 0.137)) + t * s * 1.45)
+		+ 0.22 * sin(dot(p, vec2(-0.150, 0.093)) - t * s * 1.10);
 	w += (fbm_at(p, t) - 0.5) * 2.2;
 	return w;
 }
@@ -56,15 +56,15 @@ void fragment() {
 	float w = wave_at(pos_xz, t);
 	float wave_t = clamp(w * 0.20 + 0.5, 0.0, 1.0);
 
-	// 99%: darker blue -> dark blue.
-	vec3 col = mix(darker_blue.rgb, dark_blue.rgb, smoothstep(0.005, 0.995, wave_t));
+	// 99.8%: darker blue -> dark blue.
+	vec3 col = mix(darker_blue.rgb, dark_blue.rgb, smoothstep(0.001, 0.999, wave_t));
 
 	// Random white at the extremes: hard cuts (step, no fade), patchiness
 	// from a second noise channel so white appears in scattered flecks,
-	// never as a smooth band.
-	float patch = texture(noise_tex, pos_xz * 0.045 + vec2(t * 0.06, -t * 0.05)).g;
+	// never as a smooth band. Just 0.1% of each end.
+	float patch = texture(noise_tex, pos_xz * 0.015 + vec2(t * 0.03, -t * 0.025)).g;
 	float wv = wave_t + (patch - 0.5) * 0.12;
-	float white = clamp(step(0.99, wv) + step(wv, 0.01), 0.0, 1.0);
+	float white = clamp(step(0.999, wv) + step(wv, 0.001), 0.0, 1.0);
 	col = mix(col, foam_color.rgb, white);
 
 	// Shore foam: an animated ring hugging the island. Distance from the
