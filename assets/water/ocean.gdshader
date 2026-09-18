@@ -21,7 +21,7 @@ uniform float sdf_max_dist = 12.0;
 uniform vec2 ocean_offset = vec2(0.0, -6.0);
 uniform float wave_height = 0.45;
 uniform float wave_speed = 1.1;
-uniform float foam_width = 1.5;
+uniform float foam_width = 2.4;
 
 varying vec2 pos_xz;
 
@@ -80,12 +80,12 @@ void fragment() {
 	vec2 sdf_sample = texture(shore_sdf, sdf_uv).rg;
 	float shore_d = (sdf_sample.r * 2.0 - 1.0) * sdf_max_dist;
 	// Sharp band edge (0.15-unit fade) so the foam cuts on/off like the
-	// whitecaps instead of feathering out. Narrow width + fine noise for
-	// thin radiating lines.
+	// whitecaps instead of feathering out.
 	float band = 1.0 - smoothstep(foam_width - 0.15, foam_width, abs(shore_d - 0.8));
-	float foam_n = texture(noise_tex, pos_xz * 0.11 + vec2(t * 0.05, t * 0.035)).b;
+	float foam_n = texture(noise_tex, pos_xz * 0.06 + vec2(t * 0.05, t * 0.035)).b;
 	float pulse = 0.5 + 0.5 * sin(t * 2.0 - shore_d * 2.2);
 	// Sharp breakup: higher threshold (0.62) for thinner, sparser lines.
+	// Only the brightest noise peaks pass, so white patches shrink.
 	float shore_foam = band * smoothstep(0.60, 0.64, foam_n * 0.65 + pulse * 0.35);
 	// Foam is white; the ocean's blue shows through where the foam is thin,
 	// giving a natural blue->white read without an invisible buffer.
