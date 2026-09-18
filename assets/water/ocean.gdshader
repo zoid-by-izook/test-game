@@ -79,10 +79,14 @@ void fragment() {
 	vec2 sdf_uv = clamp((world_xz - sdf_min) / sdf_size, 0.0, 1.0);
 	vec2 sdf_sample = texture(shore_sdf, sdf_uv).rg;
 	float shore_d = (sdf_sample.r * 2.0 - 1.0) * sdf_max_dist;
-	float band = 1.0 - smoothstep(foam_width * 0.5, foam_width, abs(shore_d - 0.8));
+	// Sharp band edge (0.15-unit fade, not 1.2) so the foam cuts on/off
+	// like the whitecaps instead of feathering out.
+	float band = 1.0 - smoothstep(foam_width - 0.15, foam_width, abs(shore_d - 0.8));
 	float foam_n = texture(noise_tex, pos_xz * 0.06 + vec2(t * 0.05, t * 0.035)).b;
 	float pulse = 0.5 + 0.5 * sin(t * 2.0 - shore_d * 2.2);
-	float shore_foam = band * smoothstep(0.30, 0.72, foam_n * 0.65 + pulse * 0.35);
+	// Sharp breakup: near-binary cut (0.04-wide) so foam is on/off, matching
+	// the hard whitecap edges.
+	float shore_foam = band * smoothstep(0.48, 0.52, foam_n * 0.65 + pulse * 0.35);
 	// Foam is white; the ocean's blue shows through where the foam is thin,
 	// giving a natural blue->white read without an invisible buffer.
 	// In narrow channels the band softens to avoid a glitchy sharp line.
