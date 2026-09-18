@@ -1,5 +1,5 @@
 extends Node3D
-## Root of the graybox level. Builds the island, flat water plane, floating platforms,
+## Root of the graybox level. Builds the island, animated ocean, floating platforms,
 ## coins, and goal from code; spawns the player; tracks the coin counter;
 ## shows the win label; respawns the player when they fall off the world.
 
@@ -12,6 +12,9 @@ const GOAL_SCENE: PackedScene = preload("res://scenes/goal.tscn")
 ## MultiMesh, with one StaticBody3D holding a collision box per top cube.
 const PLATFORM_MODEL: PackedScene = preload("res://assets/quaternius/Cube_Grass_Single.gltf")
 const ISLAND_MODEL: PackedScene = preload("res://assets/quaternius/Cube_Grass_Single.gltf")
+const OCEAN_SHADER: Shader = preload("res://assets/water/ocean.gdshader")
+## Tileable fBm noise driving the ocean's organic variation (swell, whitecaps).
+const OCEAN_NOISE: Texture2D = preload("res://assets/water/noise_fbm.png")
 ## Cube_Grass_Single measures ~2.23 x 2.0 x 2.23 units.
 const PLATFORM_BASE_SIZE := Vector3(2.23, 2.0, 2.23)
 ## Island: two stepped layers of grass cubes centered near the spawn area.
@@ -230,20 +233,25 @@ func _build_island() -> void:
 ## to the nearest shore edge (positive in water, negative inside the
 ## island), encoded 0..1. The ocean shader samples this so foam hugs the
 ## actual cube edges instead of an analytic circle.
-## Builds the ocean: a flat blue plane. No waves or shader yet — that
-## comes in the ocean PR. It has no collision; falling in hits KILL_Y.
+## Builds the ocean: one large subdivided plane with the animated stylized
+## water shader (six waves + fBm noise, hard-cut whitecaps). No shore foam
+## yet — that comes in a follow-up PR. It has no collision; falling in
+## means hitting KILL_Y.
 func _build_ocean() -> void:
 	var plane := PlaneMesh.new()
 	plane.size = Vector2(OCEAN_SIZE, OCEAN_SIZE)
-	var material := StandardMaterial3D.new()
-	material.albedo_color = Color(0.04, 0.20, 0.42)
-	material.roughness = 0.35
+	plane.subdivide_width = 96
+	plane.subdivide_depth = 96
+	var material := ShaderMaterial.new()
+	material.shader = OCEAN_SHADER
+	material.set_shader_parameter("noise_tex", OCEAN_NOISE)
 	var water := MeshInstance3D.new()
 	water.name = "Ocean"
 	water.mesh = plane
 	water.material_override = material
 	water.position = Vector3(ISLAND_CENTER.x, OCEAN_Y, ISLAND_CENTER.z)
 	add_child(water)
+
 
 func _extract_mesh(packed: PackedScene) -> Mesh:
 	var probe := packed.instantiate()
