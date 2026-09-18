@@ -30,6 +30,9 @@ const PLATFORM_BASE_SIZE := Vector3(2.23, 2.0, 2.23)
 ## perfect circle.
 const ISLAND_CUBE := 2.23
 const ISLAND_CENTER := Vector3(0.0, 0.0, -6.0)
+## Max shoreline shape multiplier (1.0 + sum of _island_shape amplitudes),
+## used to size the build grid so lobes aren't cut off.
+const ISLAND_SHAPE_MAX := 1.5
 const ISLAND_LAYERS := [
 	{"top_y": 0.0, "radius": 20.0},
 	{"top_y": -2.0, "radius": 17.5},
@@ -175,6 +178,13 @@ func _add_platform(pos: Vector3, size: Vector3) -> void:
 	add_child(body)
 
 
+## Island shoreline shape: angular modulation for an irregular (non-circular)
+## coastline with lobes and inlets. Returns a multiplier on the layer radius.
+## Deterministic — same angle always gives the same shape.
+func _island_shape(angle: float) -> float:
+	return 1.0 + 0.35 * sin(2.0 * angle + 0.8) + 0.15 * sin(3.0 * angle + 1.7)
+
+
 ## Builds the island: grass cubes in stepped circular layers merged into a
 ## single ArrayMesh (one draw call, no instancing — MultiMesh hangs
 ## SwiftShader's WebGL2 during boot) plus one StaticBody3D with a collision
@@ -189,13 +199,14 @@ func _build_island() -> void:
 		var top_y: float = layer["top_y"]
 		var radius: float = layer["radius"]
 		var center_y := top_y - 1.0
-		var extent := int(ceil(radius / ISLAND_CUBE)) + 1
+		var extent := int(ceil(radius * ISLAND_SHAPE_MAX * 1.08 / ISLAND_CUBE)) + 1
 		for ix in range(-extent, extent + 1):
 			for iz in range(-extent, extent + 1):
 				var x := ISLAND_CENTER.x + float(ix) * ISLAND_CUBE
 				var z := ISLAND_CENTER.z + float(iz) * ISLAND_CUBE
 				var dist := Vector2(x - ISLAND_CENTER.x, z - ISLAND_CENTER.z).length()
-				var edge := radius * (0.92 + 0.16 * _hash2(ix, iz))
+				var angle := atan2(z - ISLAND_CENTER.z, x - ISLAND_CENTER.x)
+				var edge := radius * _island_shape(angle) * (0.92 + 0.16 * _hash2(ix, iz))
 				if dist > edge:
 					continue
 				var cube_pos := Vector3(x, center_y, z)

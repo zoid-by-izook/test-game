@@ -20,7 +20,7 @@ uniform float sdf_max_dist = 12.0;
 uniform vec2 ocean_offset = vec2(0.0, -6.0);
 uniform float wave_height = 0.45;
 uniform float wave_speed = 1.1;
-uniform float foam_width = 3.5;
+uniform float foam_width = 1.8;
 
 varying vec2 pos_xz;
 
