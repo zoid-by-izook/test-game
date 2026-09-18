@@ -84,10 +84,10 @@ void fragment() {
 	float foam_n = texture(noise_tex, pos_xz * 0.06 + vec2(t * 0.05, t * 0.035)).b;
 	float pulse = 0.5 + 0.5 * sin(t * 2.0 - shore_d * 2.2);
 	float shore_foam = band * smoothstep(0.30, 0.72, foam_n * 0.65 + pulse * 0.35);
-	// Foam color: ocean palette blue (dark_blue) near the cubes, sharp cut to
-	// foam white. The transition starts at the shoreline so foam touches the
-	// island. In narrow channels it widens to avoid a glitchy sharp line.
-	float trans_end = mix(0.9, 2.1, confined);
+	// Foam color: white dominates so foam is visible touching the island.
+	// A very short blue->white ramp (0.3m) keeps a hint of the ocean palette
+	// at the waterline without creating an invisible buffer.
+	float trans_end = mix(0.3, 1.5, confined);
 	float foam_t = smoothstep(0.0, trans_end, shore_d);
 	vec3 foam_col = mix(dark_blue.rgb, foam_color.rgb, foam_t);
 	col = mix(col, foam_col, clamp(shore_foam, 0.0, 1.0) * 0.95);
