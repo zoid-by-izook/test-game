@@ -11,7 +11,8 @@ uniform vec4 foam_color : source_color = vec4(0.97, 0.99, 1.0, 1.0);
 // Tileable fBm noise texture (R: swell, G: whitecap patchiness, B: foam).
 uniform sampler2D noise_tex : filter_linear, repeat_enable;
 // Baked world-space shoreline distance field (R: signed meters to shore,
-// positive in water). Foam hugs the real cube edges, not an analytic shape.
+// positive in water; G: confinement mask, 1 = narrow channel/inlet).
+// Foam hugs the real cube edges, not an analytic shape.
 uniform sampler2D shore_sdf : filter_linear;
 uniform vec2 sdf_min = vec2(-75.0, -81.0);
 uniform float sdf_size = 150.0;
@@ -76,14 +77,18 @@ void fragment() {
 	// so it laps at the cubes.
 	vec2 world_xz = pos_xz + ocean_offset;
 	vec2 sdf_uv = clamp((world_xz - sdf_min) / sdf_size, 0.0, 1.0);
-	float shore_d = (texture(shore_sdf, sdf_uv).r * 2.0 - 1.0) * sdf_max_dist;
+	vec2 sdf_sample = texture(shore_sdf, sdf_uv).rg;
+	float shore_d = (sdf_sample.r * 2.0 - 1.0) * sdf_max_dist;
+	float confined = sdf_sample.g;
 	float band = 1.0 - smoothstep(foam_width * 0.5, foam_width, abs(shore_d - 0.8));
 	float foam_n = texture(noise_tex, pos_xz * 0.06 + vec2(t * 0.05, t * 0.035)).b;
 	float pulse = 0.5 + 0.5 * sin(t * 2.0 - shore_d * 2.2);
 	float shore_foam = band * smoothstep(0.30, 0.72, foam_n * 0.65 + pulse * 0.35);
 	// Foam color: vivid blue near the cubes, sharp cut to white at the outer
-	// edge. The narrow 0.3-unit transition keeps the blue prominent.
-	float foam_t = smoothstep(1.05, 1.35, shore_d);
+	// edge. In narrow channels (confined) the transition widens so it doesn't
+	// form a glitchy sharp line.
+	float trans_width = mix(0.3, 1.8, confined);
+	float foam_t = smoothstep(1.2 - trans_width * 0.5, 1.2 + trans_width * 0.5, shore_d);
 	vec3 foam_blue = vec3(0.10, 0.45, 0.75);
 	vec3 foam_col = mix(foam_blue, foam_color.rgb, foam_t);
 	col = mix(col, foam_col, clamp(shore_foam, 0.0, 1.0) * 0.95);

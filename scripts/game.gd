@@ -261,17 +261,33 @@ func _bake_shore_sdf() -> void:
 	var dist_to_land := _chamfer(grid, res, false)
 	var dist_to_water := _chamfer(grid, res, true)
 	var cell := SDF_SIZE / res
-	var img := Image.create(res, res, false, Image.FORMAT_R8)
+	# RG8: R = signed shore distance (0..1 encoded), G = confinement mask
+	# (1 = narrow channel/inlet where water can't get far from land).
+	var img := Image.create(res, res, false, Image.FORMAT_RG8)
+	var win := 2 # ±2 texels for confinement window
 	for z in res:
 		for x in res:
 			var i := z * res + x
 			var d: float
+			var conf := 0.0
 			if grid[i] == 1:
 				d = -dist_to_water[i] * cell
 			else:
 				d = dist_to_land[i] * cell
+				# Confinement: max distance-to-land in a 5x5 window. In a
+				# narrow channel you can't escape land, so the max stays
+				# small; in open water you can move away and it grows.
+				var max_d := 0.0
+				for dz in range(-win, win + 1):
+					var nz := clampi(z + dz, 0, res - 1)
+					for dx in range(-win, win + 1):
+						var nx := clampi(x + dx, 0, res - 1)
+						var ni := nz * res + nx
+						if grid[ni] == 0:
+							max_d = maxf(max_d, dist_to_land[ni] * cell)
+				conf = 1.0 - smoothstep(1.2, 2.5, max_d)
 			var v := clampf(d / SDF_MAX_DIST * 0.5 + 0.5, 0.0, 1.0)
-			img.set_pixel(x, z, Color(v, v, v))
+			img.set_pixel(x, z, Color(v, conf, 0.0))
 	_shore_sdf = ImageTexture.create_from_image(img)
 
 
