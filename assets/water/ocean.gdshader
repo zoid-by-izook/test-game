@@ -5,9 +5,9 @@ shader_type spatial;
 // color range is a deep-blue gradient, with hard, noise-broken white cuts
 // at the wave extremes, plus an animated foam ring where water meets island.
 
-uniform vec4 darker_blue : source_color = vec4(0.015, 0.09, 0.26, 1.0);
-uniform vec4 dark_blue : source_color = vec4(0.06, 0.26, 0.52, 1.0);
-uniform vec4 foam_color : source_color = vec4(0.93, 0.97, 1.0, 1.0);
+uniform vec4 darker_blue : source_color = vec4(0.008, 0.06, 0.20, 1.0);
+uniform vec4 dark_blue : source_color = vec4(0.04, 0.20, 0.42, 1.0);
+uniform vec4 foam_color : source_color = vec4(0.97, 0.99, 1.0, 1.0);
 // Tileable fBm noise texture (R: swell, G: whitecap patchiness, B: foam).
 uniform sampler2D noise_tex : filter_linear, repeat_enable;
 // Baked world-space shoreline distance field (R: signed meters to shore,
