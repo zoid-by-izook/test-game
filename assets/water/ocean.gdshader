@@ -3,15 +3,25 @@ shader_type spatial;
 // Six directional waves plus texture-based fBm noise displace the surface
 // (per-vertex); the fragment evaluates the same field per-pixel: 99% of the
 // color range is a deep-blue gradient, with hard, noise-broken white cuts
-// at the wave extremes. (Shore foam comes in a follow-up PR.)
+// at the wave extremes, plus an animated foam ring where water meets island.
 
 uniform vec4 darker_blue : source_color = vec4(0.008, 0.06, 0.20, 1.0);
 uniform vec4 dark_blue : source_color = vec4(0.04, 0.20, 0.42, 1.0);
 uniform vec4 foam_color : source_color = vec4(0.97, 0.99, 1.0, 1.0);
-// Tileable fBm noise texture (R: swell, G: whitecap patchiness).
+// Tileable fBm noise texture (R: swell, G: whitecap patchiness, B: foam).
 uniform sampler2D noise_tex : filter_linear, repeat_enable;
+// Baked world-space shoreline distance field (R: signed meters to shore,
+// positive in water; G: confinement mask, 1 = narrow channel/inlet).
+// Foam hugs the real cube edges, not an analytic shape.
+uniform sampler2D shore_sdf : filter_linear;
+uniform vec2 sdf_min = vec2(-75.0, -81.0);
+uniform float sdf_size = 150.0;
+uniform float sdf_max_dist = 12.0;
+// Ocean mesh position (xz): converts shader-local pos_xz to world xz.
+uniform vec2 ocean_offset = vec2(0.0, -6.0);
 uniform float wave_height = 0.45;
 uniform float wave_speed = 1.1;
+uniform float foam_width = 2.8;
 
 varying vec2 pos_xz;
 
@@ -61,6 +71,30 @@ void fragment() {
 	float white = clamp(step(0.999, wv) + step(wv, 0.001), 0.0, 1.0);
 	col = mix(col, foam_color.rgb, white);
 
+	// Shore foam: distance sampled from the baked shoreline SDF, so it hugs
+	// the actual cube edges. shore_d > 0 in water, < 0 inside the island.
+	// The band straddles the edge, carved by noise and a traveling pulse
+	// so it laps at the cubes.
+	vec2 world_xz = pos_xz + ocean_offset;
+	vec2 sdf_uv = clamp((world_xz - sdf_min) / sdf_size, 0.0, 1.0);
+	vec2 sdf_sample = texture(shore_sdf, sdf_uv).rg;
+	float shore_d = (sdf_sample.r * 2.0 - 1.0) * sdf_max_dist;
+	// Sharp band edge (0.15-unit fade) so the foam cuts on/off like the
+	// whitecaps instead of feathering out.
+	float band = 1.0 - smoothstep(foam_width - 0.15, foam_width, abs(shore_d - 0.8));
+	float foam_n = texture(noise_tex, pos_xz * 0.06 + vec2(t * 0.05, t * 0.035)).b;
+	float pulse = 0.5 + 0.5 * sin(t * 2.0 - shore_d * 2.2);
+	// Sharp breakup: threshold rises with distance from shore, so foam lines
+	// are thick near the cubes and taper to thin wisps further out. Only
+	// the brightest noise peaks survive at the outer edge.
+	float dist_t = clamp(shore_d / foam_width, 0.0, 1.0);
+	float thresh = mix(0.60, 0.80, dist_t);
+	float shore_foam = band * smoothstep(thresh, thresh + 0.04, foam_n * 0.65 + pulse * 0.35);
+	// Foam is white; the ocean's blue shows through where the foam is thin,
+	// giving a natural blue->white read without an invisible buffer.
+	// In narrow channels the band softens to avoid a glitchy sharp line.
+	vec3 foam_col = foam_color.rgb;
+	col = mix(col, foam_col, clamp(shore_foam, 0.0, 1.0) * 0.95);
 
 	ALBEDO = col;
 	ROUGHNESS = 0.35;
