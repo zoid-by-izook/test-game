@@ -77,11 +77,11 @@ void fragment() {
 	vec2 world_xz = pos_xz + ocean_offset;
 	vec2 sdf_uv = clamp((world_xz - sdf_min) / sdf_size, 0.0, 1.0);
 	float shore_d = (texture(shore_sdf, sdf_uv).r * 2.0 - 1.0) * sdf_max_dist;
-	float band = 1.0 - smoothstep(0.0, foam_width, abs(shore_d - 0.8));
+	float band = 1.0 - smoothstep(foam_width * 0.5, foam_width, abs(shore_d - 0.8));
 	float foam_n = texture(noise_tex, pos_xz * 0.06 + vec2(t * 0.05, t * 0.035)).b;
 	float pulse = 0.5 + 0.5 * sin(t * 2.0 - shore_d * 2.2);
 	float shore_foam = band * smoothstep(0.30, 0.72, foam_n * 0.65 + pulse * 0.35);
-	col = mix(col, foam_color.rgb, clamp(shore_foam, 0.0, 1.0) * 0.85);
+	col = mix(col, foam_color.rgb, clamp(shore_foam, 0.0, 1.0) * 0.95);
 
 	ALBEDO = col;
 	ROUGHNESS = 0.35;
