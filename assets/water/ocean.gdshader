@@ -84,9 +84,12 @@ void fragment() {
 	float band = 1.0 - smoothstep(foam_width - 0.15, foam_width, abs(shore_d - 0.8));
 	float foam_n = texture(noise_tex, pos_xz * 0.06 + vec2(t * 0.05, t * 0.035)).b;
 	float pulse = 0.5 + 0.5 * sin(t * 2.0 - shore_d * 2.2);
-	// Sharp breakup: higher threshold (0.62) for thinner, sparser lines.
-	// Only the brightest noise peaks pass, so white patches shrink.
-	float shore_foam = band * smoothstep(0.60, 0.64, foam_n * 0.65 + pulse * 0.35);
+	// Sharp breakup: threshold rises with distance from shore, so foam lines
+	// are thick near the cubes and taper to thin wisps further out. Only
+	// the brightest noise peaks survive at the outer edge.
+	float dist_t = clamp(shore_d / foam_width, 0.0, 1.0);
+	float thresh = mix(0.52, 0.72, dist_t);
+	float shore_foam = band * smoothstep(thresh, thresh + 0.04, foam_n * 0.65 + pulse * 0.35);
 	// Foam is white; the ocean's blue shows through where the foam is thin,
 	// giving a natural blue->white read without an invisible buffer.
 	// In narrow channels the band softens to avoid a glitchy sharp line.
