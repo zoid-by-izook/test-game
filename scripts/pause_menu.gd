@@ -42,11 +42,6 @@ func _on_sfx_changed(value: float) -> void:
 	AudioManager.play_sfx("coin")
 
 
-func show_menu() -> void:
-	visible = true
-	%ResumeButton.grab_focus()
-
-
 func hide_menu() -> void:
 	visible = false
 
