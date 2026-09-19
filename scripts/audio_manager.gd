@@ -48,7 +48,7 @@ func _ready() -> void:
 	_apply_volumes()
 	_unlock_web_audio()
 	# TEMPORARY DEBUG - remove before merge
-	var debug_overlay := load("res://scripts/audio_debug.gd").new()
+	var debug_overlay = load("res://scripts/audio_debug.gd").new()
 	add_child(debug_overlay)
 
 
