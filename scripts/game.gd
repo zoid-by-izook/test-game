@@ -200,6 +200,8 @@ func _build_island() -> void:
 		var radius: float = layer["radius"]
 		var center_y := top_y - 1.0
 		var extent := int(ceil(radius * ISLAND_SHAPE_MAX * 1.08 / ISLAND_CUBE)) + 1
+		# Pass 1: build the initial grid, tracking filled cells per layer.
+		var filled := {}  # Vector2i -> true
 		for ix in range(-extent, extent + 1):
 			for iz in range(-extent, extent + 1):
 				var x := ISLAND_CENTER.x + float(ix) * ISLAND_CUBE
@@ -209,6 +211,7 @@ func _build_island() -> void:
 				var edge := radius * _island_shape(angle) * (0.92 + 0.16 * _hash2(ix, iz))
 				if dist > edge:
 					continue
+				filled[Vector2i(ix, iz)] = true
 				var cube_pos := Vector3(x, center_y, z)
 				transforms.append(Transform3D(Basis(), cube_pos))
 				if layer_index == 0:
@@ -219,6 +222,37 @@ func _build_island() -> void:
 					shape.shape = box
 					shape.position = cube_pos
 					body.add_child(shape)
+		# Pass 2: fill single-cell interior gaps (morphological closing).
+		# An empty cell is filled only if it has land on opposite sides
+		# (left+right or up+down). Outer shoreline cells have open water
+		# on at least one side, so the shoreline shape is untouched.
+		# Filled cells are identical standard cubes -- same mesh, grid
+		# position, and collision -- indistinguishable from Pass 1 cells.
+		var to_fill: Array[Vector2i] = []
+		for ix in range(-extent, extent + 1):
+			for iz in range(-extent, extent + 1):
+				var cell := Vector2i(ix, iz)
+				if filled.has(cell):
+					continue
+				var left := filled.has(Vector2i(ix - 1, iz))
+				var right := filled.has(Vector2i(ix + 1, iz))
+				var up := filled.has(Vector2i(ix, iz - 1))
+				var down := filled.has(Vector2i(ix, iz + 1))
+				if (left and right) or (up and down):
+					to_fill.append(cell)
+		for cell in to_fill:
+			var x := ISLAND_CENTER.x + float(cell.x) * ISLAND_CUBE
+			var z := ISLAND_CENTER.z + float(cell.y) * ISLAND_CUBE
+			var cube_pos := Vector3(x, center_y, z)
+			transforms.append(Transform3D(Basis(), cube_pos))
+			if layer_index == 0:
+				_top_layer_cubes.append(Vector2(x, z))
+				var shape := CollisionShape3D.new()
+				var box := BoxShape3D.new()
+				box.size = Vector3(ISLAND_CUBE, 2.0, ISLAND_CUBE)
+				shape.shape = box
+				shape.position = cube_pos
+				body.add_child(shape)
 	# Merge the cube mesh into a single ArrayMesh (one draw call, no
 	# instancing). MultiMesh instancing hangs SwiftShader's WebGL2 during
 	# boot; a merged mesh renders identically and works everywhere.
