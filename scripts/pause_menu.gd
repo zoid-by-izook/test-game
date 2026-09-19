@@ -12,11 +12,34 @@ signal restart_requested
 func _ready() -> void:
 	%ResumeButton.pressed.connect(func() -> void: resume_requested.emit())
 	%RestartButton.pressed.connect(func() -> void: restart_requested.emit())
+	%MasterSlider.value_changed.connect(_on_master_changed)
+	%MusicSlider.value_changed.connect(_on_music_changed)
+	%SfxSlider.value_changed.connect(_on_sfx_changed)
 
 
 func show_menu() -> void:
 	visible = true
+	_sync_sliders()
 	%ResumeButton.grab_focus()
+
+
+func _sync_sliders() -> void:
+	%MasterSlider.set_value_no_signal(AudioManager.master_volume)
+	%MusicSlider.set_value_no_signal(AudioManager.music_volume)
+	%SfxSlider.set_value_no_signal(AudioManager.sfx_volume)
+
+
+func _on_master_changed(value: float) -> void:
+	AudioManager.set_master_volume(value)
+
+
+func _on_music_changed(value: float) -> void:
+	AudioManager.set_music_volume(value)
+
+
+func _on_sfx_changed(value: float) -> void:
+	AudioManager.set_sfx_volume(value)
+	AudioManager.play_sfx("coin")
 
 
 func hide_menu() -> void:

@@ -17,12 +17,17 @@ var controls_enabled := false
 @onready var _anim: AnimationPlayer = $CharacterModel.find_child("AnimationPlayer")
 
 
+## Tracks airborne state to detect landings for the land SFX.
+var _was_on_floor := true
+
+
 func _physics_process(delta: float) -> void:
 	if not is_on_floor():
 		velocity.y -= gravity * delta
 
 	if controls_enabled and Input.is_action_just_pressed("jump") and is_on_floor():
 		velocity.y = jump_velocity
+		AudioManager.play_sfx("jump")
 
 	var input_dir := Vector2.ZERO
 	if controls_enabled:
@@ -39,6 +44,9 @@ func _physics_process(delta: float) -> void:
 		velocity.z = move_toward(velocity.z, 0.0, speed * 8.0 * delta)
 
 	move_and_slide()
+	if not _was_on_floor and is_on_floor():
+		AudioManager.play_sfx("land")
+	_was_on_floor = is_on_floor()
 	_update_animation(input_dir)
 
 

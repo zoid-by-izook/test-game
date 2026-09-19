@@ -23,6 +23,21 @@ const CREDITS: Array = [
 		"artist": "GDQuest",
 		"license": "MIT",
 	},
+	{
+		"title": "\"Casa Bossa Nova\" (title theme)",
+		"artist": "Kevin MacLeod (incompetech.com)",
+		"license": "CC BY 4.0",
+	},
+	{
+		"title": "\"Bassa Island Game Loop\" (gameplay theme)",
+		"artist": "Kevin MacLeod (incompetech.com)",
+		"license": "CC BY 4.0",
+	},
+	{
+		"title": "SFX: jump, land, coin, win jingle",
+		"artist": "Kenney (kenney.nl)",
+		"license": "CC0 1.0 Universal",
+	},
 ]
 
 
