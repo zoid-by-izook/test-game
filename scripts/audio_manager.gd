@@ -46,9 +46,21 @@ func _ready() -> void:
 		_sfx_players.append(p)
 	_load_settings()
 	_apply_volumes()
+	_unlock_web_audio()
 	# TEMPORARY DEBUG - remove before merge
 	var debug_overlay := load("res://scripts/audio_debug.gd").new()
 	add_child(debug_overlay)
+
+
+## Forces the browser AudioContext to resume on first user gesture.
+## Godot 4.7.2 web creates the AudioContext at engine startup (before any
+## user input), so the browser suspends it per autoplay policy. Godot's
+## automatic resume does not fire, leaving all audio silent.
+func _unlock_web_audio() -> void:
+	if not OS.has_feature("web"):
+		return
+	var js := "(function(){var r=function(){if(typeof _godot_audio_resume==='function'){_godot_audio_resume();}if(typeof GodotAudio!=='undefined'&&GodotAudio.ctx&&GodotAudio.ctx.state!=='running'){GodotAudio.ctx.resume();}};['click','keydown','touchstart','mousedown','pointerdown'].forEach(function(e){document.addEventListener(e,r,{once:true,passive:true});});r();})();"
+	JavaScriptBridge.eval(js, true)
 
 
 func _ensure_bus(bus_name: String) -> void:
