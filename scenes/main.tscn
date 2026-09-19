@@ -207,3 +207,62 @@ theme_override_colors/font_color = Color(0.55, 0.6, 0.68, 1)
 theme_override_font_sizes/font_size = 20
 horizontal_alignment = 1
 text = "Esc / P to resume"
+
+[node name="AudioTitle" type="Label" parent="UI/PauseMenu/Center/VBox"]
+theme_override_font_sizes/font_size = 28
+horizontal_alignment = 1
+text = "AUDIO"
+
+[node name="MasterRow" type="HBoxContainer" parent="UI/PauseMenu/Center/VBox"]
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="MasterLabel" type="Label" parent="UI/PauseMenu/Center/VBox/MasterRow"]
+custom_minimum_size = Vector2(110, 0)
+theme_override_font_sizes/font_size = 22
+text = "Master"
+vertical_alignment = 1
+
+[node name="MasterSlider" type="HSlider" parent="UI/PauseMenu/Center/VBox/MasterRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(260, 0)
+size_flags_vertical = 4
+max_value = 1.0
+step = 0.01
+value = 1.0
+
+[node name="MusicRow" type="HBoxContainer" parent="UI/PauseMenu/Center/VBox"]
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="MusicLabel" type="Label" parent="UI/PauseMenu/Center/VBox/MusicRow"]
+custom_minimum_size = Vector2(110, 0)
+theme_override_font_sizes/font_size = 22
+text = "Music"
+vertical_alignment = 1
+
+[node name="MusicSlider" type="HSlider" parent="UI/PauseMenu/Center/VBox/MusicRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(260, 0)
+size_flags_vertical = 4
+max_value = 1.0
+step = 0.01
+value = 0.8
+
+[node name="SfxRow" type="HBoxContainer" parent="UI/PauseMenu/Center/VBox"]
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="SfxLabel" type="Label" parent="UI/PauseMenu/Center/VBox/SfxRow"]
+custom_minimum_size = Vector2(110, 0)
+theme_override_font_sizes/font_size = 22
+text = "SFX"
+vertical_alignment = 1
+
+[node name="SfxSlider" type="HSlider" parent="UI/PauseMenu/Center/VBox/SfxRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(260, 0)
+size_flags_vertical = 4
+max_value = 1.0
+step = 0.01
+value = 0.8
