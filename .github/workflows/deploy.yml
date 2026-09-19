@@ -56,6 +56,47 @@ jobs:
           "./Godot_v${GODOT_VERSION}-stable_linux.x86_64" --headless --path . --import
           "./Godot_v${GODOT_VERSION}-stable_linux.x86_64" --headless --path . --export-release "Web" ./exports/web/index.html
 
+      - name: Patch web audio autoplay unlock
+        run: |
+          # Chrome suspends Godot's AudioContext until a user gesture. Godot 4.7.2
+          # does not resume it on input by itself, and the resume helper
+          # (_godot_audio_resume) lives inside the Emscripten module scope where
+          # page-level JavaScript cannot reach it. So we inject global gesture
+          # listeners from INSIDE the module scope, right after the resume
+          # function definition. The browser then allows ctx.resume() because it
+          # runs inside a real user-gesture handler.
+          python3 << 'PYEOF'
+          path = 'exports/web/index.js'
+          with open(path, 'r') as f:
+              content = f.read()
+
+          marker = 'function _godot_audio_resume(){'
+          start = content.find(marker)
+          if start == -1:
+              print('WARNING: _godot_audio_resume not found - audio unlock NOT patched')
+          else:
+              # Brace-match to find the end of the function definition.
+              depth = 0
+              end = -1
+              for i in range(start, min(start + 2000, len(content))):
+                  ch = content[i]
+                  if ch == '{':
+                      depth += 1
+                  elif ch == '}':
+                      depth -= 1
+                      if depth == 0:
+                          end = i + 1
+                          break
+              if end == -1:
+                  print('WARNING: could not find end of _godot_audio_resume - NOT patched')
+              else:
+                  injection = ';["pointerdown","keydown","touchstart","mousedown"].forEach(function(ev){window.addEventListener(ev,_godot_audio_resume);});'
+                  content = content[:end] + injection + content[end:]
+                  with open(path, 'w') as f:
+                      f.write(content)
+                  print('Audio unlock patched into index.js')
+          PYEOF
+
       - name: Capture website screenshots
         run: |
           # Serve the exported site locally, then screenshot the website shell
