@@ -191,15 +191,28 @@ func _island_shape(angle: float) -> float:
 ## box per top-layer cube.
 func _build_island() -> void:
 	var cube_mesh := _extract_mesh(ISLAND_MODEL)
-	var transforms: Array[Transform3D] = []
+	var shore_transforms: Array[Transform3D] = []
+	var interior_transforms: Array[Transform3D] = []
 	var body := StaticBody3D.new()
 	body.name = "IslandBody"
+	# Interior fill: plain boxes for cells surrounded on all 4 sides.
+	# They tile with no bevel grooves, making the top a solid mass.
+	# Inset 2cm below the shoreline so the material transition hides
+	# in a shadow line; the beveled Quaternius cubes form a subtle rim.
+	var interior_mat := StandardMaterial3D.new()
+	interior_mat.albedo_color = Color(0.38, 0.72, 0.28)
+	interior_mat.roughness = 0.9
+	var interior_box := BoxMesh.new()
+	interior_box.size = Vector3(ISLAND_CUBE, 2.0, ISLAND_CUBE)
+	interior_box.material = interior_mat
 	for layer_index in ISLAND_LAYERS.size():
 		var layer: Dictionary = ISLAND_LAYERS[layer_index]
 		var top_y: float = layer["top_y"]
 		var radius: float = layer["radius"]
 		var center_y := top_y - 1.0
 		var extent := int(ceil(radius * ISLAND_SHAPE_MAX * 1.08 / ISLAND_CUBE)) + 1
+		# Pass 1: determine which cells are land.
+		var filled := {}  # Vector2i -> true
 		for ix in range(-extent, extent + 1):
 			for iz in range(-extent, extent + 1):
 				var x := ISLAND_CENTER.x + float(ix) * ISLAND_CUBE
@@ -209,33 +222,69 @@ func _build_island() -> void:
 				var edge := radius * _island_shape(angle) * (0.92 + 0.16 * _hash2(ix, iz))
 				if dist > edge:
 					continue
-				var cube_pos := Vector3(x, center_y, z)
-				transforms.append(Transform3D(Basis(), cube_pos))
+				filled[Vector2i(ix, iz)] = true
+		# Pass 2: shoreline cells (any empty neighbor) get the beveled
+		# Quaternius cube; interior cells (all 4 neighbors filled) get
+		# the plain box, inset 2cm.
+		for ix in range(-extent, extent + 1):
+			for iz in range(-extent, extent + 1):
+				var cell := Vector2i(ix, iz)
+				if not filled.has(cell):
+					continue
+				var x := ISLAND_CENTER.x + float(ix) * ISLAND_CUBE
+				var z := ISLAND_CENTER.z + float(iz) * ISLAND_CUBE
+				var is_interior := (
+					filled.has(Vector2i(ix - 1, iz))
+					and filled.has(Vector2i(ix + 1, iz))
+					and filled.has(Vector2i(ix, iz - 1))
+					and filled.has(Vector2i(ix, iz + 1))
+				)
+				if is_interior:
+					var inner_pos := Vector3(x, center_y - 0.02, z)
+					interior_transforms.append(Transform3D(Basis(), inner_pos))
+				else:
+					var cube_pos := Vector3(x, center_y, z)
+					shore_transforms.append(Transform3D(Basis(), cube_pos))
 				if layer_index == 0:
 					_top_layer_cubes.append(Vector2(x, z))
 					var shape := CollisionShape3D.new()
 					var box := BoxShape3D.new()
 					box.size = Vector3(ISLAND_CUBE, 2.0, ISLAND_CUBE)
 					shape.shape = box
-					shape.position = cube_pos
+					# Collision stays at full height (not inset) for a flat
+					# walkable surface; the 2cm visual step is negligible.
+					shape.position = Vector3(x, center_y, z)
 					body.add_child(shape)
-	# Merge the cube mesh into a single ArrayMesh (one draw call, no
-	# instancing). MultiMesh instancing hangs SwiftShader's WebGL2 during
-	# boot; a merged mesh renders identically and works everywhere.
-	var merged := ArrayMesh.new()
+	# Merge the beveled shoreline cubes into a single ArrayMesh (one draw
+	# call, no instancing). MultiMesh instancing hangs SwiftShader's WebGL2
+	# during boot; a merged mesh renders identically and works everywhere.
+	var shore_merged := ArrayMesh.new()
 	var surface_count := cube_mesh.get_surface_count()
 	for s in surface_count:
 		var tool := SurfaceTool.new()
 		tool.begin(Mesh.PRIMITIVE_TRIANGLES)
 		tool.set_material(cube_mesh.surface_get_material(s))
-		for t in transforms:
+		for t in shore_transforms:
 			tool.append_from(cube_mesh, s, t)
-		tool.commit(merged)
-	var visual := MeshInstance3D.new()
-	visual.name = "IslandVisual"
-	visual.mesh = merged
-	visual.custom_aabb = AABB(Vector3(-25, -5, -33), Vector3(50, 8, 54))
-	add_child(visual)
+		tool.commit(shore_merged)
+	var shore_visual := MeshInstance3D.new()
+	shore_visual.name = "IslandShoreVisual"
+	shore_visual.mesh = shore_merged
+	shore_visual.custom_aabb = AABB(Vector3(-25, -5, -33), Vector3(50, 8, 54))
+	add_child(shore_visual)
+	# Merge the plain interior boxes into their own mesh.
+	var interior_merged := ArrayMesh.new()
+	var interior_tool := SurfaceTool.new()
+	interior_tool.begin(Mesh.PRIMITIVE_TRIANGLES)
+	interior_tool.set_material(interior_mat)
+	for t in interior_transforms:
+		interior_tool.append_from(interior_box, 0, t)
+	interior_tool.commit(interior_merged)
+	var interior_visual := MeshInstance3D.new()
+	interior_visual.name = "IslandInteriorVisual"
+	interior_visual.mesh = interior_merged
+	interior_visual.custom_aabb = AABB(Vector3(-25, -5, -33), Vector3(50, 8, 54))
+	add_child(interior_visual)
 	add_child(body)
 
 
