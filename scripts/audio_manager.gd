@@ -46,6 +46,9 @@ func _ready() -> void:
 		_sfx_players.append(p)
 	_load_settings()
 	_apply_volumes()
+	# TEMPORARY DEBUG - remove before merge
+	var debug_overlay := load("res://scripts/audio_debug.gd").new()
+	add_child(debug_overlay)
 
 
 func _ensure_bus(bus_name: String) -> void:
