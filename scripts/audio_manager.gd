@@ -34,11 +34,13 @@ var master_volume := 1.0
 
 
 func _ready() -> void:
+	print("[AudioManager] _ready() - initializing")
 	_ensure_bus(MUSIC_BUS)
 	_ensure_bus(SFX_BUS)
 	_music_a = _make_music_player()
 	_music_b = _make_music_player()
 	_active_music = _music_a
+	print("[AudioManager] _ready() - players created, active=A")
 	for i in SFX_POOL_SIZE:
 		var p := AudioStreamPlayer.new()
 		p.bus = SFX_BUS
@@ -47,6 +49,7 @@ func _ready() -> void:
 	_load_settings()
 	_apply_volumes()
 	_unlock_web_audio()
+	print("[AudioManager] _ready() - complete")
 	# TEMPORARY DEBUG - remove before merge
 	var debug_overlay = load("res://scripts/audio_debug.gd").new()
 	add_child(debug_overlay)
@@ -81,28 +84,39 @@ func _make_music_player() -> AudioStreamPlayer:
 
 ## Starts the title theme (looped). Called from the main menu.
 func play_title_theme() -> void:
+	print("[AudioManager] play_title_theme() called")
 	_switch_music(TITLE_THEME)
 
 
 ## Starts the gameplay theme (looped). Called when the run begins.
 func play_game_theme() -> void:
+	print("[AudioManager] play_game_theme() called")
 	_switch_music(GAME_THEME)
 
 
 func _switch_music(stream: AudioStream) -> void:
+	print("[AudioManager] _switch_music() called, stream=", stream.resource_path if stream else "null")
+	print("[AudioManager] _active_music playing=", _active_music.playing, " stream=", _active_music.stream.resource_path if _active_music.stream else "null")
 	if _active_music.stream == stream and _active_music.playing:
+		print("[AudioManager] _switch_music() - already playing this stream, returning early")
 		return
 	var next_player := _music_b if _active_music == _music_a else _music_a
+	var next_name := "B" if next_player == _music_b else "A"
+	print("[AudioManager] _switch_music() - next_player=", next_name)
 	next_player.stream = stream
 	# If nothing is currently playing, start directly at full volume.
 	# (The crossfade tween below does not run reliably on web, so we only
 	# use it when actually transitioning from one playing track to another.)
 	if not _active_music.playing:
+		print("[AudioManager] _switch_music() - taking DIRECT play path (nothing currently playing)")
 		_active_music.stop()
 		next_player.volume_db = 0.0
 		next_player.play()
+		print("[AudioManager] _switch_music() - after play(), next_player.playing=", next_player.playing)
 		_active_music = next_player
+		print("[AudioManager] _switch_music() - _active_music is now ", next_name)
 		return
+	print("[AudioManager] _switch_music() - taking CROSSFADE path")
 	next_player.volume_db = -80.0
 	next_player.play()
 	var tween := create_tween().set_parallel(true)
@@ -110,6 +124,7 @@ func _switch_music(stream: AudioStream) -> void:
 	tween.tween_property(next_player, "volume_db", 0.0, CROSSFADE_TIME)
 	tween.chain().tween_callback(_active_music.stop)
 	_active_music = next_player
+	print("[AudioManager] _switch_music() - crossfade tween created, _active_music is now ", next_name)
 
 
 ## Plays a one-shot SFX by name ("jump", "land", "coin", "win").
