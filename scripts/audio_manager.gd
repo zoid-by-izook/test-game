@@ -94,6 +94,15 @@ func _switch_music(stream: AudioStream) -> void:
 		return
 	var next_player := _music_b if _active_music == _music_a else _music_a
 	next_player.stream = stream
+	# If nothing is currently playing, start directly at full volume.
+	# (The crossfade tween below does not run reliably on web, so we only
+	# use it when actually transitioning from one playing track to another.)
+	if not _active_music.playing:
+		_active_music.stop()
+		next_player.volume_db = 0.0
+		next_player.play()
+		_active_music = next_player
+		return
 	next_player.volume_db = -80.0
 	next_player.play()
 	var tween := create_tween().set_parallel(true)
