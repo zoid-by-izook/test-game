@@ -32,15 +32,12 @@ var music_volume := 0.8
 var sfx_volume := 0.8
 var master_volume := 1.0
 
-
 func _ready() -> void:
-	print("[AudioManager] _ready() - initializing")
 	_ensure_bus(MUSIC_BUS)
 	_ensure_bus(SFX_BUS)
 	_music_a = _make_music_player()
 	_music_b = _make_music_player()
 	_active_music = _music_a
-	print("[AudioManager] _ready() - players created, active=A")
 	for i in SFX_POOL_SIZE:
 		var p := AudioStreamPlayer.new()
 		p.bus = SFX_BUS
@@ -57,11 +54,6 @@ func _ready() -> void:
 	# so global-scope eval can never see them (verified in the deployed
 	# index.js). The deploy workflow's index.js patch, injected inside module
 	# scope, is the only working unlock path.
-	print("[AudioManager] _ready() - complete")
-	# TEMPORARY DEBUG - remove before merge
-	var debug_overlay = load("res://scripts/audio_debug.gd").new()
-	add_child(debug_overlay)
-
 
 ## The .ogg.import loop flags are not committed to the repo, so looping is
 ## enforced here at runtime to keep it deterministic and visible in code.
@@ -71,7 +63,6 @@ func _enable_music_looping() -> void:
 		if ogg:
 			ogg.loop = true
 
-
 func _ensure_bus(bus_name: String) -> void:
 	if AudioServer.get_bus_index(bus_name) != -1:
 		return
@@ -79,7 +70,6 @@ func _ensure_bus(bus_name: String) -> void:
 	AudioServer.add_bus(idx)
 	AudioServer.set_bus_name(idx, bus_name)
 	AudioServer.set_bus_send(idx, "Master")
-
 
 func _make_music_player() -> AudioStreamPlayer:
 	var p := AudioStreamPlayer.new()
@@ -95,41 +85,28 @@ func _make_music_player() -> AudioStreamPlayer:
 	add_child(p)
 	return p
 
-
 ## Starts the title theme (looped). Called from the main menu.
 func play_title_theme() -> void:
-	print("[AudioManager] play_title_theme() called")
 	_switch_music(TITLE_THEME)
-
 
 ## Starts the gameplay theme (looped). Called when the run begins.
 func play_game_theme() -> void:
-	print("[AudioManager] play_game_theme() called")
 	_switch_music(GAME_THEME)
 
-
 func _switch_music(stream: AudioStream) -> void:
-	print("[AudioManager] _switch_music() called, stream=", stream.resource_path if stream else "null")
-	print("[AudioManager] _active_music playing=", _active_music.playing, " stream=", _active_music.stream.resource_path if _active_music.stream else "null")
 	if _active_music.stream == stream and _active_music.playing:
-		print("[AudioManager] _switch_music() - already playing this stream, returning early")
 		return
 	var next_player := _music_b if _active_music == _music_a else _music_a
 	var next_name := "B" if next_player == _music_b else "A"
-	print("[AudioManager] _switch_music() - next_player=", next_name)
 	next_player.stream = stream
 	# If nothing is currently playing, start directly at full volume
 	# (a fade-in from -80 dB would just add 1.5 s of near-silence).
 	if not _active_music.playing:
-		print("[AudioManager] _switch_music() - taking DIRECT play path (nothing currently playing)")
 		_active_music.stop()
 		next_player.volume_db = 0.0
 		next_player.play()
-		print("[AudioManager] _switch_music() - after play(), next_player.playing=", next_player.playing)
 		_active_music = next_player
-		print("[AudioManager] _switch_music() - _active_music is now ", next_name)
 		return
-	print("[AudioManager] _switch_music() - taking CROSSFADE path")
 	next_player.volume_db = -80.0
 	next_player.play()
 	var tween := create_tween().set_parallel(true)
@@ -137,8 +114,6 @@ func _switch_music(stream: AudioStream) -> void:
 	tween.tween_property(next_player, "volume_db", 0.0, CROSSFADE_TIME)
 	tween.chain().tween_callback(_active_music.stop)
 	_active_music = next_player
-	print("[AudioManager] _switch_music() - crossfade tween created, _active_music is now ", next_name)
-
 
 ## Plays a one-shot SFX by name ("jump", "land", "coin", "win").
 func play_sfx(sfx_name: String) -> void:
@@ -154,30 +129,25 @@ func play_sfx(sfx_name: String) -> void:
 	_sfx_players[0].stream = SFX[sfx_name]
 	_sfx_players[0].play()
 
-
 func set_music_volume(v: float) -> void:
 	music_volume = clampf(v, 0.0, 1.0)
 	_apply_volumes()
 	_save_settings()
-
 
 func set_sfx_volume(v: float) -> void:
 	sfx_volume = clampf(v, 0.0, 1.0)
 	_apply_volumes()
 	_save_settings()
 
-
 func set_master_volume(v: float) -> void:
 	master_volume = clampf(v, 0.0, 1.0)
 	_apply_volumes()
 	_save_settings()
 
-
 func _apply_volumes() -> void:
 	AudioServer.set_bus_volume_db(AudioServer.get_bus_index(MUSIC_BUS), linear_to_db(music_volume))
 	AudioServer.set_bus_volume_db(AudioServer.get_bus_index(SFX_BUS), linear_to_db(sfx_volume))
 	AudioServer.set_bus_volume_db(AudioServer.get_bus_index("Master"), linear_to_db(master_volume))
-
 
 func _save_settings() -> void:
 	var cfg := ConfigFile.new()
@@ -185,7 +155,6 @@ func _save_settings() -> void:
 	cfg.set_value("audio", "sfx", sfx_volume)
 	cfg.set_value("audio", "master", master_volume)
 	cfg.save(SETTINGS_PATH)
-
 
 func _load_settings() -> void:
 	var cfg := ConfigFile.new()

@@ -58,13 +58,15 @@ jobs:
 
       - name: Patch web audio autoplay unlock
         run: |
-          # Chrome suspends Godot's AudioContext until a user gesture. Godot 4.7.2
-          # does not resume it on input by itself, and the resume helper
-          # (_godot_audio_resume) lives inside the Emscripten module scope where
-          # page-level JavaScript cannot reach it. So we inject global gesture
-          # listeners from INSIDE the module scope, right after the resume
-          # function definition. The browser then allows ctx.resume() because it
-          # runs inside a real user-gesture handler.
+          # Chrome suspends Godot's AudioContext until a user gesture. Godot's
+          # own resume listeners are canvas-level, but our DOM start button
+          # consumes the initial click, so the engine never sees a gesture.
+          # The resume helper (_godot_audio_resume) lives inside the
+          # Emscripten module scope where page-level JavaScript cannot reach
+          # it, so we inject global gesture listeners from INSIDE the module
+          # scope, right after the resume function definition. The browser
+          # then allows ctx.resume() because it runs inside a real
+          # user-gesture handler.
           python3 << 'PYEOF'
           path = 'exports/web/index.js'
           with open(path, 'r') as f:
@@ -90,38 +92,14 @@ jobs:
               if end == -1:
                   print('WARNING: could not find end of _godot_audio_resume - NOT patched')
               else:
-                  # TEMPORARY DEBUG (remove before merge): log the AudioContext state
-                  # on every gesture and expose window.__godotAudioDbg so the game
-                  # overlay and devtools console can read it. The engine lives
-                  # inside an IIFE closure, so page-level JS cannot otherwise see
-                  # GodotAudio (verified 2026-09-20).
                   injection = (
                       ';(function(){'
-                      'var _audbg_state=function(){return GodotAudio.ctx?GodotAudio.ctx.state:"null";};'
-                      # TEMPORARY DEBUG (remove before merge): expose the JS bus
-                      # routing so the overlay can verify Godot issue #119026
-                      # (Master silently disconnected from ctx.destination when
-                      # 2+ buses exist with sample playback) is avoided. Our
-                      # players use PLAYBACK_TYPE_STREAM, which bypasses the
-                      # buggy JS bus graph; masterSendNull=true confirms Master
-                      # still feeds the output.
-                      'var _audbg_bus=function(){'
-                      'try{var b=GodotAudio.buses||[];var m=b[0];'
-                      'return JSON.stringify({count:b.length,'
-                      'masterSendNull:m?(m._send==null):null,'
-                      'masterGains:m?[m._gainNode.gain.value,m._soloNode.gain.value,m._muteNode.gain.value]:null});'
-                      '}catch(e){return "busState error: "+e;}};'
-                      'window.__godotAudioDbg={state:_audbg_state,'
-                      'resume:function(){_godot_audio_resume();return _audbg_state();},'
-                      'busState:_audbg_bus};'
                       '["pointerdown","keydown","touchstart","mousedown"].forEach(function(ev){'
                       'window.addEventListener(ev,function(){'
-                      'console.log("[audio-unlock] gesture="+ev+" before="+_audbg_state());'
-                      'try{_godot_audio_resume();'
-                      'var pr=GodotAudio.ctx?GodotAudio.ctx.resume():null;'
-                      'if(pr&&pr.then){pr.then(function(){'
-                      'console.log("[audio-unlock] resume resolved, state="+_audbg_state());});}'
-                      '}catch(e){console.log("[audio-unlock] error: "+e);}'
+                      'try{'
+                      '_godot_audio_resume();'
+                      'if(GodotAudio.ctx&&GodotAudio.ctx.resume){GodotAudio.ctx.resume();}'
+                      '}catch(e){}'
                       '});});})();'
                   )
                   content = content[:end] + injection + content[end:]
