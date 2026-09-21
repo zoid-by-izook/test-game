@@ -45,7 +45,7 @@ func _ready() -> void:
 		var p := AudioStreamPlayer.new()
 		p.bus = SFX_BUS
 		# See _make_music_player(): force stream playback (Godot #119026).
-		p.playback_type = AudioStreamPlayer.PLAYBACK_TYPE_STREAM
+		p.playback_type = AudioServer.PLAYBACK_TYPE_STREAM
 		add_child(p)
 		_sfx_players.append(p)
 	_load_settings()
@@ -91,7 +91,7 @@ func _make_music_player() -> AudioStreamPlayer:
 	# triggers it via AudioServer.add_bus(bus_count), which the engine
 	# normalizes to -1 (append). Stream playback mixes server-side and never
 	# touches the buggy JS bus graph, so force it here.
-	p.playback_type = AudioStreamPlayer.PLAYBACK_TYPE_STREAM
+	p.playback_type = AudioServer.PLAYBACK_TYPE_STREAM
 	add_child(p)
 	return p
 
