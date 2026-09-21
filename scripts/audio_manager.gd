@@ -44,6 +44,8 @@ func _ready() -> void:
 	for i in SFX_POOL_SIZE:
 		var p := AudioStreamPlayer.new()
 		p.bus = SFX_BUS
+		# See _make_music_player(): force stream playback (Godot #119026).
+		p.playback_type = AudioStreamPlayer.PLAYBACK_TYPE_STREAM
 		add_child(p)
 		_sfx_players.append(p)
 	_load_settings()
@@ -82,6 +84,14 @@ func _ensure_bus(bus_name: String) -> void:
 func _make_music_player() -> AudioStreamPlayer:
 	var p := AudioStreamPlayer.new()
 	p.bus = MUSIC_BUS
+	# Godot issue #119026: on web exports the default sample playback path
+	# has a JS bus-array bug (Bus.addAt(-1) -> Bus.move(N, -1) scrambles the
+	# bus list when 2+ buses exist), silently disconnecting Master from the
+	# output: playing=true, healthy volumes, total silence. Our _ensure_bus()
+	# triggers it via AudioServer.add_bus(bus_count), which the engine
+	# normalizes to -1 (append). Stream playback mixes server-side and never
+	# touches the buggy JS bus graph, so force it here.
+	p.playback_type = AudioStreamPlayer.PLAYBACK_TYPE_STREAM
 	add_child(p)
 	return p
 

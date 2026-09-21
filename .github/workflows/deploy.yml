@@ -98,8 +98,22 @@ jobs:
                   injection = (
                       ';(function(){'
                       'var _audbg_state=function(){return GodotAudio.ctx?GodotAudio.ctx.state:"null";};'
+                      # TEMPORARY DEBUG (remove before merge): expose the JS bus
+                      # routing so the overlay can verify Godot issue #119026
+                      # (Master silently disconnected from ctx.destination when
+                      # 2+ buses exist with sample playback) is avoided. Our
+                      # players use PLAYBACK_TYPE_STREAM, which bypasses the
+                      # buggy JS bus graph; masterSendNull=true confirms Master
+                      # still feeds the output.
+                      'var _audbg_bus=function(){'
+                      'try{var b=GodotAudio.buses||[];var m=b[0];'
+                      'return JSON.stringify({count:b.length,'
+                      'masterSendNull:m?(m._send==null):null,'
+                      'masterGains:m?[m._gainNode.gain.value,m._soloNode.gain.value,m._muteNode.gain.value]:null});'
+                      '}catch(e){return "busState error: "+e;}};'
                       'window.__godotAudioDbg={state:_audbg_state,'
-                      'resume:function(){_godot_audio_resume();return _audbg_state();}};'
+                      'resume:function(){_godot_audio_resume();return _audbg_state();},'
+                      'busState:_audbg_bus};'
                       '["pointerdown","keydown","touchstart","mousedown"].forEach(function(ev){'
                       'window.addEventListener(ev,function(){'
                       'console.log("[audio-unlock] gesture="+ev+" before="+_audbg_state());'

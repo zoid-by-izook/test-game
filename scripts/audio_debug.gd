@@ -57,6 +57,11 @@ func _process(delta: float) -> void:
         AudioManager._music_b.volume_db
     ])
     lines.append("Active: %s" % ("A" if AudioManager._active_music == AudioManager._music_a else "B"))
+    # TEMPORARY: confirm the #119026 workaround is live (2 = STREAM).
+    lines.append("Playback: A=%d B=%d (2=stream)" % [
+        AudioManager._music_a.playback_type,
+        AudioManager._music_b.playback_type
+    ])
     
     # SFX pool
     var sfx_playing := 0
@@ -64,6 +69,9 @@ func _process(delta: float) -> void:
         if p.playing:
             sfx_playing += 1
     lines.append("SFX pool: %d/%d playing" % [sfx_playing, AudioManager._sfx_players.size()])
+
+    # TEMPORARY: JS bus-routing state (Godot issue #119026). Remove before merge.
+    lines.append("Bus routing: %s" % _read_bus_state())
     
     # Volumes
     lines.append("Volumes: master=%.2f music=%.2f sfx=%.2f" % [
@@ -82,6 +90,19 @@ func _read_ctx_state() -> String:
         return "n/a (not web)"
     var res = JavaScriptBridge.eval(
         "window.__godotAudioDbg ? window.__godotAudioDbg.state() : \"no-hook\"", true)
+    if res == null:
+        return "null"
+    return str(res)
+
+
+# TEMPORARY: reads the JS bus-routing state through the debug hook injected
+# into index.js by the deploy workflow. masterSendNull=true means the Master
+# bus still feeds ctx.destination (no #119026 scramble). Remove before merge.
+func _read_bus_state() -> String:
+    if not OS.has_feature("web"):
+        return "n/a (not web)"
+    var res = JavaScriptBridge.eval(
+        "window.__godotAudioDbg && window.__godotAudioDbg.busState ? window.__godotAudioDbg.busState() : \"no-hook\"", true)
     if res == null:
         return "null"
     return str(res)
