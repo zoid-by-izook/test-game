@@ -48,22 +48,26 @@ func _ready() -> void:
 		_sfx_players.append(p)
 	_load_settings()
 	_apply_volumes()
-	_unlock_web_audio()
+	_enable_music_looping()
+	# NOTE (2026-09-20): a previous GDScript web-audio unlock via
+	# JavaScriptBridge.eval was removed here. It was a silent no-op: GodotAudio
+	# and _godot_audio_resume live inside the Emscripten module's IIFE closure,
+	# so global-scope eval can never see them (verified in the deployed
+	# index.js). The deploy workflow's index.js patch, injected inside module
+	# scope, is the only working unlock path.
 	print("[AudioManager] _ready() - complete")
 	# TEMPORARY DEBUG - remove before merge
 	var debug_overlay = load("res://scripts/audio_debug.gd").new()
 	add_child(debug_overlay)
 
 
-## Forces the browser AudioContext to resume on first user gesture.
-## Godot 4.7.2 web creates the AudioContext at engine startup (before any
-## user input), so the browser suspends it per autoplay policy. Godot's
-## automatic resume does not fire, leaving all audio silent.
-func _unlock_web_audio() -> void:
-	if not OS.has_feature("web"):
-		return
-	var js := "(function(){var r=function(){if(typeof _godot_audio_resume==='function'){_godot_audio_resume();}if(typeof GodotAudio!=='undefined'&&GodotAudio.ctx&&GodotAudio.ctx.state!=='running'){GodotAudio.ctx.resume();}};['click','keydown','touchstart','mousedown','pointerdown'].forEach(function(e){document.addEventListener(e,r,{once:true,passive:true});});r();})();"
-	JavaScriptBridge.eval(js, true)
+## The .ogg.import loop flags are not committed to the repo, so looping is
+## enforced here at runtime to keep it deterministic and visible in code.
+func _enable_music_looping() -> void:
+	for stream in [TITLE_THEME, GAME_THEME]:
+		var ogg := stream as AudioStreamOggVorbis
+		if ogg:
+			ogg.loop = true
 
 
 func _ensure_bus(bus_name: String) -> void:
@@ -104,9 +108,8 @@ func _switch_music(stream: AudioStream) -> void:
 	var next_name := "B" if next_player == _music_b else "A"
 	print("[AudioManager] _switch_music() - next_player=", next_name)
 	next_player.stream = stream
-	# If nothing is currently playing, start directly at full volume.
-	# (The crossfade tween below does not run reliably on web, so we only
-	# use it when actually transitioning from one playing track to another.)
+	# If nothing is currently playing, start directly at full volume
+	# (a fade-in from -80 dB would just add 1.5 s of near-silence).
 	if not _active_music.playing:
 		print("[AudioManager] _switch_music() - taking DIRECT play path (nothing currently playing)")
 		_active_music.stop()

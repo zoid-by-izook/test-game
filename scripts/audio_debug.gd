@@ -3,6 +3,10 @@
 extends CanvasLayer
 
 var _label: Label
+# TEMPORARY: web AudioContext state via the debug hook injected into index.js
+# by the deploy workflow (remove with the hook before merge).
+var _ctx_state := "n/a"
+var _ctx_poll := 0.0
 
 
 func _ready() -> void:
@@ -18,13 +22,20 @@ func _ready() -> void:
     add_child(_label)
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
     if not is_instance_valid(AudioManager):
         _label.text = "AudioManager NOT FOUND"
         return
-    
+
+    # Poll the AudioContext state at 2 Hz (temporary debug).
+    _ctx_poll += delta
+    if _ctx_poll >= 0.5:
+        _ctx_poll = 0.0
+        _ctx_state = _read_ctx_state()
+
     var lines := []
     lines.append("=== AUDIO DEBUG ===")
+    lines.append("AudioContext: %s" % _ctx_state)
     
     # Bus info
     lines.append("Buses: %d" % AudioServer.bus_count)
@@ -62,3 +73,15 @@ func _process(_delta: float) -> void:
     ])
     
     _label.text = "\n".join(lines)
+
+
+# TEMPORARY: reads the AudioContext state through the debug hook injected into
+# index.js by the deploy workflow (window.__godotAudioDbg). Remove before merge.
+func _read_ctx_state() -> String:
+    if not OS.has_feature("web"):
+        return "n/a (not web)"
+    var res = JavaScriptBridge.eval(
+        "window.__godotAudioDbg ? window.__godotAudioDbg.state() : \"no-hook\"", true)
+    if res == null:
+        return "null"
+    return str(res)
