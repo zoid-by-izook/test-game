@@ -1,8 +1,16 @@
 extends Node
 
+const TITLE_THEME: AudioStream = preload("res://assets/audio/music/title_theme.ogg")
+const GAME_THEME: AudioStream = preload("res://assets/audio/music/game_theme.ogg")
+
 const SETTINGS_PATH := "user://audio_settings.cfg"
 const MUSIC_BUS := "Music"
 const SFX_BUS := "SFX"
+const CROSSFADE_TIME := 1.5
+
+var _music_a: AudioStreamPlayer
+var _music_b: AudioStreamPlayer
+var _active_music: AudioStreamPlayer
 
 var music_volume := 0.8
 var sfx_volume := 0.8
@@ -11,8 +19,20 @@ var master_volume := 1.0
 func _ready() -> void:
 	_ensure_bus(MUSIC_BUS)
 	_ensure_bus(SFX_BUS)
+	_music_a = _make_music_player()
+	_music_b = _make_music_player()
+	_active_music = _music_a
 	_load_settings()
 	_apply_volumes()
+	_enable_music_looping()
+
+## The .ogg.import loop flags are not committed to the repo, so looping is
+## enforced here at runtime to keep it deterministic and visible in code.
+func _enable_music_looping() -> void:
+	for stream in [TITLE_THEME, GAME_THEME]:
+		var ogg := stream as AudioStreamOggVorbis
+		if ogg:
+			ogg.loop = true
 
 ## NOTE: adding buses this way triggers Godot issue #119026 on web exports
 ## (the engine's JS bus array gets scrambled, disconnecting Master from the
@@ -25,6 +45,40 @@ func _ensure_bus(bus_name: String) -> void:
 	AudioServer.add_bus(idx)
 	AudioServer.set_bus_name(idx, bus_name)
 	AudioServer.set_bus_send(idx, "Master")
+
+func _make_music_player() -> AudioStreamPlayer:
+	var p := AudioStreamPlayer.new()
+	p.bus = MUSIC_BUS
+	# Godot #119026: sample playback on these buses is silently disconnected
+	# on web exports; STREAM playback mixes server-side and bypasses the bug.
+	p.playback_type = AudioServer.PLAYBACK_TYPE_STREAM
+	add_child(p)
+	return p
+
+func play_title_theme() -> void:
+	_switch_music(TITLE_THEME)
+
+func play_game_theme() -> void:
+	_switch_music(GAME_THEME)
+
+func _switch_music(stream: AudioStream) -> void:
+	if _active_music.stream == stream and _active_music.playing:
+		return
+	var next_player := _music_b if _active_music == _music_a else _music_a
+	next_player.stream = stream
+	if not _active_music.playing:
+		_active_music.stop()
+		next_player.volume_db = 0.0
+		next_player.play()
+		_active_music = next_player
+		return
+	next_player.volume_db = -80.0
+	next_player.play()
+	var tween := create_tween().set_parallel(true)
+	tween.tween_property(_active_music, "volume_db", -80.0, CROSSFADE_TIME)
+	tween.tween_property(next_player, "volume_db", 0.0, CROSSFADE_TIME)
+	tween.chain().tween_callback(_active_music.stop)
+	_active_music = next_player
 
 func set_music_volume(v: float) -> void:
 	music_volume = clampf(v, 0.0, 1.0)

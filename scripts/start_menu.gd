@@ -23,6 +23,16 @@ const CREDITS: Array = [
 		"artist": "GDQuest",
 		"license": "MIT",
 	},
+	{
+		"title": "\"Casa Bossa Nova\" (title theme)",
+		"artist": "Kevin MacLeod (incompetech.com)",
+		"license": "CC BY 4.0",
+	},
+	{
+		"title": "\"Bassa Island Game Loop\" (gameplay theme)",
+		"artist": "Kevin MacLeod (incompetech.com)",
+		"license": "CC BY 4.0",
+	},
 ]
 
 
