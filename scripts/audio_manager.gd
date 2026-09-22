@@ -1,11 +1,4 @@
 extends Node
-## Global audio manager (autoload). Owns the Music and SFX audio buses and
-## volume settings (persisted to user://).
-##
-## Buses: Master (built-in) -> Music, SFX (created here at runtime).
-## Music themes and one-shot SFX are wired up by later PRs; this one is the
-## engine: buses, volume API, settings persistence, and the web-deploy
-## audio-unlock patch (see .github/workflows/deploy.yml).
 
 const SETTINGS_PATH := "user://audio_settings.cfg"
 const MUSIC_BUS := "Music"
@@ -20,14 +13,7 @@ func _ready() -> void:
 	_ensure_bus(SFX_BUS)
 	_load_settings()
 	_apply_volumes()
-	# NOTE (2026-09-20): a previous GDScript web-audio unlock via
-	# JavaScriptBridge.eval was removed here. It was a silent no-op: GodotAudio
-	# and _godot_audio_resume live inside the Emscripten module's IIFE closure,
-	# so global-scope eval can never see them (verified in the deployed
-	# index.js). The deploy workflow's index.js patch, injected inside module
-	# scope, is the only working unlock path.
 
-## Creates a bus sending to Master if it does not exist yet.
 ## NOTE: adding buses this way triggers Godot issue #119026 on web exports
 ## (the engine's JS bus array gets scrambled, disconnecting Master from the
 ## output). Audio players on these buses must therefore use
