@@ -33,6 +33,11 @@ const CREDITS: Array = [
 		"artist": "Kevin MacLeod (incompetech.com)",
 		"license": "CC BY 4.0",
 	},
+	{
+		"title": "SFX: jump, land, coin, win jingle",
+		"artist": "Kenney (kenney.nl)",
+		"license": "CC0 1.0 Universal",
+	},
 ]
 
 
