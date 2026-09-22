@@ -50,6 +50,10 @@ jobs:
       - name: Export Web build
         run: |
           mkdir -p exports/web
+          # Explicit import step: ensures .godot/imported/ is populated before
+          # export. Without this, headless exports can reference imported
+          # resource paths in the .pck without including their data.
+          "./Godot_v${GODOT_VERSION}-stable_linux.x86_64" --headless --path . --import
           "./Godot_v${GODOT_VERSION}-stable_linux.x86_64" --headless --path . --export-release "Web" ./exports/web/index.html
 
       - name: Capture website screenshots
