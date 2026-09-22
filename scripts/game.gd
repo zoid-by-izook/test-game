@@ -388,10 +388,12 @@ func _hash2(x: int, z: int) -> float:
 func _on_coin_collected(_coin: Coin) -> void:
 	_coins_got += 1
 	_update_coin_label()
+	AudioManager.play_sfx("coin")
 
 
 func _on_goal_reached() -> void:
 	_win_label.visible = true
+	AudioManager.play_sfx("win")
 
 
 func _update_coin_label() -> void:
