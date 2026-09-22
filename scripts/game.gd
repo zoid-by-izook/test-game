@@ -72,6 +72,7 @@ func _ready() -> void:
 	_pause_menu.restart_requested.connect(restart_game)
 	_menu.show_menu()
 	_update_coin_label()
+	AudioManager.play_title_theme()
 
 
 func is_started() -> bool:
@@ -88,6 +89,7 @@ func start_game() -> void:
 	_started = true
 	_menu.hide_menu()
 	_player.controls_enabled = true
+	AudioManager.play_game_theme()
 
 
 func pause_game() -> void:
