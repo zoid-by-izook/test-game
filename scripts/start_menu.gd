@@ -5,12 +5,11 @@ extends Control
 ## game root also dismisses the menu on any key/mouse/touch via
 ## `_unhandled_input`, so this signal only covers the button itself.
 ##
-## The menu has two views: the main title view and a credits view listing
-## third-party assets (artist / asset / license). Each entry in CREDITS is a
-## Dictionary with "title", "artist", and "license" keys — asset PRs append
-## their entries here so the in-game credits stay current.
+## Each CREDITS entry is a Dictionary with "title", "artist", and "license" keys.
 
 signal start_requested
+
+var _audio_menu: AudioMenu
 
 const CREDITS: Array = [
 	{
@@ -43,9 +42,15 @@ const CREDITS: Array = [
 
 func _ready() -> void:
 	%StartButton.pressed.connect(_on_start_button_pressed)
+	%AudioButton.pressed.connect(show_audio)
+	%MuteButton.pressed.connect(_on_mute_pressed)
 	%CreditsButton.pressed.connect(show_credits)
 	%BackButton.pressed.connect(show_main)
 	_build_credits_list()
+	_audio_menu = AudioMenu.new()
+	_audio_menu.back_requested.connect(show_main)
+	_audio_menu.visible = false
+	%Center.add_child(_audio_menu)
 	show_main()
 
 
@@ -66,12 +71,30 @@ func show_credits() -> void:
 
 func show_main() -> void:
 	%CreditsView.visible = false
+	_audio_menu.visible = false
 	%MainView.visible = true
+	_sync_mute_button()
 	%StartButton.grab_focus()
+
+
+func show_audio() -> void:
+	%MainView.visible = false
+	%CreditsView.visible = false
+	_audio_menu.visible = true
+	_audio_menu.refresh()
 
 
 func is_credits_open() -> bool:
 	return visible and %CreditsView.visible
+
+
+func _on_mute_pressed() -> void:
+	AudioManager.set_muted(not AudioManager.is_muted())
+	_sync_mute_button()
+
+
+func _sync_mute_button() -> void:
+	%MuteButton.text = "Sound: Off" if AudioManager.is_muted() else "Sound: On"
 
 
 func _unhandled_input(event: InputEvent) -> void:
