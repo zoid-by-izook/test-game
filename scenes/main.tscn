@@ -249,7 +249,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.02, 0.03, 0.06, 0.72)
+color = Color(0.12, 0.02, 0.03, 0.72)
 
 [node name="GameOverCenter" type="CenterContainer" parent="UI/GameOverMenu"]
 unique_name_in_owner = true
