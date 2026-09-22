@@ -61,6 +61,8 @@ GitHub Actions.** After that, pushes to `main` go live on their own.
   — [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)
 - **"Bassa Island Game Loop"** (gameplay theme) by [Kevin MacLeod](https://incompetech.com)
   — [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)
+- **SFX** (jump, land, coin pickup, win jingle) by [Kenney](https://kenney.nl)
+  — CC0 1.0 Universal
 
 As licensed assets are added, each artist, asset, and license will be
 credited here, in the in-game credits menu (Credits button on the title

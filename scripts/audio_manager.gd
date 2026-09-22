@@ -3,6 +3,13 @@ extends Node
 const TITLE_THEME: AudioStream = preload("res://assets/audio/music/title_theme.ogg")
 const GAME_THEME: AudioStream = preload("res://assets/audio/music/game_theme.ogg")
 
+const SFX := {
+	"jump": preload("res://assets/audio/sfx/jump.ogg"),
+	"land": preload("res://assets/audio/sfx/land.ogg"),
+	"coin": preload("res://assets/audio/sfx/coin.ogg"),
+	"win": preload("res://assets/audio/sfx/win.ogg"),
+}
+
 const SETTINGS_PATH := "user://audio_settings.cfg"
 const MUSIC_BUS := "Music"
 const SFX_BUS := "SFX"
@@ -11,6 +18,8 @@ const CROSSFADE_TIME := 1.5
 var _music_a: AudioStreamPlayer
 var _music_b: AudioStreamPlayer
 var _active_music: AudioStreamPlayer
+var _sfx_players: Array[AudioStreamPlayer] = []
+const SFX_POOL_SIZE := 8
 
 var music_volume := 0.8
 var sfx_volume := 0.8
@@ -22,6 +31,13 @@ func _ready() -> void:
 	_music_a = _make_music_player()
 	_music_b = _make_music_player()
 	_active_music = _music_a
+	for i in SFX_POOL_SIZE:
+		var p := AudioStreamPlayer.new()
+		p.bus = SFX_BUS
+		# See _make_music_player(): force stream playback (Godot #119026).
+		p.playback_type = AudioServer.PLAYBACK_TYPE_STREAM
+		add_child(p)
+		_sfx_players.append(p)
 	_load_settings()
 	_apply_volumes()
 	_enable_music_looping()
@@ -79,6 +95,18 @@ func _switch_music(stream: AudioStream) -> void:
 	tween.tween_property(next_player, "volume_db", 0.0, CROSSFADE_TIME)
 	tween.chain().tween_callback(_active_music.stop)
 	_active_music = next_player
+
+func play_sfx(sfx_name: String) -> void:
+	if not SFX.has(sfx_name):
+		push_warning("AudioManager: unknown sfx '%s'" % sfx_name)
+		return
+	for p in _sfx_players:
+		if not p.playing:
+			p.stream = SFX[sfx_name]
+			p.play()
+			return
+	_sfx_players[0].stream = SFX[sfx_name]
+	_sfx_players[0].play()
 
 func set_music_volume(v: float) -> void:
 	music_volume = clampf(v, 0.0, 1.0)
