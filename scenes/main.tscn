@@ -80,6 +80,7 @@ grow_vertical = 2
 color = Color(0.02, 0.03, 0.06, 0.82)
 
 [node name="Center" type="CenterContainer" parent="UI/StartMenu"]
+unique_name_in_owner = true
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -113,6 +114,20 @@ custom_minimum_size = Vector2(300, 84)
 size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 36
 text = "▶  START"
+
+[node name="AudioButton" type="Button" parent="UI/StartMenu/Center/MainView"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(300, 56)
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 24
+text = "AUDIO"
+
+[node name="MuteButton" type="Button" parent="UI/StartMenu/Center/MainView"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(300, 56)
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 24
+text = "Sound: On"
 
 [node name="Hint" type="Label" parent="UI/StartMenu/Center/MainView"]
 theme_override_colors/font_color = Color(0.55, 0.6, 0.68, 1)
@@ -172,37 +187,46 @@ grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.02, 0.03, 0.06, 0.72)
 
-[node name="Center" type="CenterContainer" parent="UI/PauseMenu"]
+[node name="PauseCenter" type="CenterContainer" parent="UI/PauseMenu"]
+unique_name_in_owner = true
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="VBox" type="VBoxContainer" parent="UI/PauseMenu/Center"]
+[node name="VBox" type="VBoxContainer" parent="UI/PauseMenu/PauseCenter"]
+unique_name_in_owner = true
 alignment = 1
 theme_override_constants/separation = 18
 
-[node name="Title" type="Label" parent="UI/PauseMenu/Center/VBox"]
+[node name="Title" type="Label" parent="UI/PauseMenu/PauseCenter/VBox"]
 theme_override_font_sizes/font_size = 48
 horizontal_alignment = 1
 text = "PAUSED"
 
-[node name="ResumeButton" type="Button" parent="UI/PauseMenu/Center/VBox"]
+[node name="ResumeButton" type="Button" parent="UI/PauseMenu/PauseCenter/VBox"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(300, 72)
 size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 32
 text = "▶  RESUME"
 
-[node name="RestartButton" type="Button" parent="UI/PauseMenu/Center/VBox"]
+[node name="RestartButton" type="Button" parent="UI/PauseMenu/PauseCenter/VBox"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(300, 72)
 size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 32
 text = "↻  RESTART"
 
-[node name="Hint" type="Label" parent="UI/PauseMenu/Center/VBox"]
+[node name="PauseAudioButton" type="Button" parent="UI/PauseMenu/PauseCenter/VBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(300, 72)
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 32
+text = "AUDIO"
+
+[node name="Hint" type="Label" parent="UI/PauseMenu/PauseCenter/VBox"]
 theme_override_colors/font_color = Color(0.55, 0.6, 0.68, 1)
 theme_override_font_sizes/font_size = 20
 horizontal_alignment = 1

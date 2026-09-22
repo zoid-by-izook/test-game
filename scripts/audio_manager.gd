@@ -24,6 +24,7 @@ const SFX_POOL_SIZE := 8
 var music_volume := 0.8
 var sfx_volume := 0.8
 var master_volume := 1.0
+var muted := false
 
 func _ready() -> void:
 	_ensure_bus(MUSIC_BUS)
@@ -118,6 +119,14 @@ func set_sfx_volume(v: float) -> void:
 	_apply_volumes()
 	_save_settings()
 
+func is_muted() -> bool:
+	return muted
+
+func set_muted(m: bool) -> void:
+	muted = m
+	_apply_volumes()
+	_save_settings()
+
 func set_master_volume(v: float) -> void:
 	master_volume = clampf(v, 0.0, 1.0)
 	_apply_volumes()
@@ -127,12 +136,14 @@ func _apply_volumes() -> void:
 	AudioServer.set_bus_volume_db(AudioServer.get_bus_index(MUSIC_BUS), linear_to_db(music_volume))
 	AudioServer.set_bus_volume_db(AudioServer.get_bus_index(SFX_BUS), linear_to_db(sfx_volume))
 	AudioServer.set_bus_volume_db(AudioServer.get_bus_index("Master"), linear_to_db(master_volume))
+	AudioServer.set_bus_mute(AudioServer.get_bus_index("Master"), muted)
 
 func _save_settings() -> void:
 	var cfg := ConfigFile.new()
 	cfg.set_value("audio", "music", music_volume)
 	cfg.set_value("audio", "sfx", sfx_volume)
 	cfg.set_value("audio", "master", master_volume)
+	cfg.set_value("audio", "muted", muted)
 	cfg.save(SETTINGS_PATH)
 
 func _load_settings() -> void:
@@ -142,3 +153,4 @@ func _load_settings() -> void:
 	music_volume = float(cfg.get_value("audio", "music", music_volume))
 	sfx_volume = float(cfg.get_value("audio", "sfx", sfx_volume))
 	master_volume = float(cfg.get_value("audio", "master", master_volume))
+	muted = bool(cfg.get_value("audio", "muted", muted))
