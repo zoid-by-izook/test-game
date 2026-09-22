@@ -52,12 +52,16 @@ var _top_layer_cubes: Array[Vector2] = []
 var _shore_sdf: ImageTexture
 var _player: PlatformerPlayer
 var _started := false
+## Set by retry_game() before scene reload: skip the start menu and
+## jump straight into gameplay. Static so it survives reload_current_scene().
+static var _autostart := false
 
 @onready var _coin_label: Label = $UI/CoinLabel
 @onready var _win_label: Label = $UI/WinLabel
 @onready var _camera: Camera3D = $Camera3D
 @onready var _menu: StartMenu = $UI/StartMenu
 @onready var _pause_menu: PauseMenu = $UI/PauseMenu
+@onready var _game_over_menu: GameOverMenu = $UI/GameOverMenu
 
 
 func _ready() -> void:
@@ -70,7 +74,13 @@ func _ready() -> void:
 	_menu.start_requested.connect(start_game)
 	_pause_menu.resume_requested.connect(resume_game)
 	_pause_menu.restart_requested.connect(restart_game)
-	_menu.show_menu()
+	_game_over_menu.retry_requested.connect(retry_game)
+	_game_over_menu.main_menu_requested.connect(go_to_main_menu)
+	if _autostart:
+		_autostart = false
+		start_game()
+	else:
+		_menu.show_menu()
 	_update_coin_label()
 	AudioManager.play_title_theme()
 
@@ -111,6 +121,20 @@ func restart_game() -> void:
 	get_tree().reload_current_scene()
 
 
+## Retry from the game-over screen: reload and skip the start menu,
+## jumping straight back into the run.
+func retry_game() -> void:
+	_autostart = true
+	get_tree().paused = false
+	get_tree().reload_current_scene()
+
+
+## Back to the title screen: reload; _ready shows the start menu by default.
+func go_to_main_menu() -> void:
+	get_tree().paused = false
+	get_tree().reload_current_scene()
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if not _started:
 		if _menu.is_credits_open():
@@ -131,9 +155,13 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _process(_delta: float) -> void:
-	if _player and _player.global_position.y < KILL_Y:
-		_player.velocity = Vector3.ZERO
-		_player.global_position = SPAWN
+	if _started and not get_tree().paused and _player and _player.global_position.y < KILL_Y:
+		_game_over()
+
+
+func _game_over() -> void:
+	get_tree().paused = true
+	_game_over_menu.show_menu()
 
 
 func _build_level() -> void:

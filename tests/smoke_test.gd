@@ -126,13 +126,17 @@ func _run() -> void:
 	_check(win_label.visible, "goal triggered victory label")
 	await _shot("05-victory")
 
-	# Fall respawn: below the kill plane the player must return to spawn.
-	print("SMOKE: stage fall-respawn")
+	# Fall game-over: below the kill plane the game-over screen must show.
+	print("SMOKE: stage fall-game-over")
 	_player.global_position = Vector3(0.0, -20.0, 6.0)
 	_player.velocity = Vector3.ZERO
 	await _physics_frames(30)
-	var dist: float = _player.global_position.distance_to(SPAWN)
-	_check(dist < 2.0, "fell below kill plane and respawned (d=%.2f)" % dist)
+	_check(_game._game_over_menu.visible, "fell below kill plane and game-over menu shown")
+	_check(get_tree().paused, "tree paused on game-over")
+	# Retry: reloads and auto-starts a fresh run.
+	_game.retry_game()
+	await _physics_frames(30)
+	_check(_game.is_started(), "retry restarted the run")
 
 	if _failures.is_empty():
 		print("SMOKE PASS")
