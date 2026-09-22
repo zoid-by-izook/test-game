@@ -127,23 +127,25 @@ func _run() -> void:
 	await _shot("05-victory")
 
 	# Fall game-over: below the kill plane the game-over screen must show.
+	# Final stage: retry_game() queues a scene reload (deferred to end of
+	# frame), so verify its setup and quit before the reload fires — letting
+	# it fire would reload the smoke test scene itself and restart the test.
 	print("SMOKE: stage fall-game-over")
 	_player.global_position = Vector3(0.0, -20.0, 6.0)
 	_player.velocity = Vector3.ZERO
 	await _physics_frames(30)
 	_check(_game._game_over_menu.visible, "fell below kill plane and game-over menu shown")
 	_check(get_tree().paused, "tree paused on game-over")
-	# Retry: reloads and auto-starts a fresh run.
+	await _shot("07-game-over")
 	_game.retry_game()
-	await _physics_frames(30)
-	_check(_game.is_started(), "retry restarted the run")
+	_check(_game._autostart, "retry arms autostart for the reload")
+	_check(not get_tree().paused, "retry unpauses the tree")
 
 	if _failures.is_empty():
 		print("SMOKE PASS")
 	else:
 		for f in _failures:
 			print("SMOKE FAIL: ", f)
-		await _shot("99-failure")
 	get_tree().quit(1 if not _failures.is_empty() else 0)
 
 
