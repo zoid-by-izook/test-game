@@ -8,6 +8,7 @@ const SFX := {
 	"land": preload("res://assets/audio/sfx/land.ogg"),
 	"coin": preload("res://assets/audio/sfx/coin.ogg"),
 	"win": preload("res://assets/audio/sfx/win.ogg"),
+	"splash": preload("res://assets/audio/sfx/splash.ogg"),
 }
 
 const SETTINGS_PATH := "user://audio_settings.cfg"
