@@ -175,6 +175,7 @@ func die(cause: StringName) -> void:
 
 func _die_ocean() -> void:
 	_spawn_splash(Vector3(_player.global_position.x, OCEAN_Y + 0.15, _player.global_position.z))
+	AudioManager.play_sfx("splash")
 	var tween := create_tween().set_parallel(true)
 	tween.tween_property(_player, "global_position:y", OCEAN_Y + 0.25, 0.35).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	tween.tween_property(_player, "rotation:z", 0.25, 0.35).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
