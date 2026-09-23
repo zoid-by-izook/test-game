@@ -138,15 +138,19 @@ func _run() -> void:
 	_check(win_label.visible, "goal triggered victory label")
 	await _shot("05-victory")
 
-	# Fall game-over: below the kill plane the game-over screen must show.
+	# Fall game-over: touching the ocean plays the death animation (splash,
+	# bob, sink), then the game-over screen shows.
 	# Final stage: retry_game() reloads the scene (deferred to end of frame).
 	# The reloaded test instance sees _is_retry_run and only verifies the
 	# autostart, so this instance just arms the flag and lets the reload fire.
 	print("SMOKE: stage fall-game-over")
-	_player.global_position = Vector3(0.0, -20.0, 6.0)
+	_player.global_position = Vector3(40.0, 2.0, 6.0)
 	_player.velocity = Vector3.ZERO
-	await _physics_frames(30)
-	_check(_game._game_over_menu.visible, "fell below kill plane and game-over menu shown")
+	await _physics_frames(20)
+	_check(not _player.controls_enabled, "player controls disabled during death animation")
+	await _shot("07a-death-splash")
+	await _physics_frames(150)
+	_check(_game._game_over_menu.visible, "fell in ocean and game-over menu shown after death animation")
 	_check(get_tree().paused, "tree paused on game-over")
 	await _shot("07-game-over")
 	_is_retry_run = true
