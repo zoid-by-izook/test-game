@@ -15,6 +15,9 @@ var _failures: Array[String] = []
 var _game: Node3D
 var _player: PlatformerPlayer
 var _shot_dir: String
+## Set before retry_game() triggers a scene reload: the reloaded test
+## instance skips the full suite and only verifies the autostart worked.
+static var _is_retry_run := false
 
 
 func _ready() -> void:
@@ -34,6 +37,15 @@ func _run() -> void:
 		if child is PlatformerPlayer:
 			_player = child
 	_check(_player != null, "player spawned")
+
+	if _is_retry_run:
+		print("SMOKE: verifying retry autostart")
+		_check(_game.is_started(), "retry auto-started the game")
+		var retry_menu: Control = _game.get_node("UI/StartMenu")
+		_check(not retry_menu.visible, "start menu skipped on retry")
+		_check(_player.controls_enabled, "player controls enabled on retry")
+		_finish()
+		return
 
 	# Start menu: visible on boot, game starts on dismissal.
 	print("SMOKE: stage start-menu")
@@ -127,9 +139,9 @@ func _run() -> void:
 	await _shot("05-victory")
 
 	# Fall game-over: below the kill plane the game-over screen must show.
-	# Final stage: retry_game() queues a scene reload (deferred to end of
-	# frame), so verify its setup and quit before the reload fires — letting
-	# it fire would reload the smoke test scene itself and restart the test.
+	# Final stage: retry_game() reloads the scene (deferred to end of frame).
+	# The reloaded test instance sees _is_retry_run and only verifies the
+	# autostart, so this instance just arms the flag and lets the reload fire.
 	print("SMOKE: stage fall-game-over")
 	_player.global_position = Vector3(0.0, -20.0, 6.0)
 	_player.velocity = Vector3.ZERO
@@ -137,15 +149,18 @@ func _run() -> void:
 	_check(_game._game_over_menu.visible, "fell below kill plane and game-over menu shown")
 	_check(get_tree().paused, "tree paused on game-over")
 	await _shot("07-game-over")
+	_is_retry_run = true
 	_game.retry_game()
-	_check(_game._autostart, "retry arms autostart for the reload")
-	_check(not get_tree().paused, "retry unpauses the tree")
 
+
+## Prints the result and quits with the appropriate exit code.
+func _finish() -> void:
 	if _failures.is_empty():
 		print("SMOKE PASS")
 	else:
 		for f in _failures:
 			print("SMOKE FAIL: ", f)
+		await _shot("99-failure")
 	get_tree().quit(1 if not _failures.is_empty() else 0)
 
 
