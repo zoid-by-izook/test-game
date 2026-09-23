@@ -41,8 +41,6 @@ const OCEAN_Y := -1.0
 const OCEAN_SIZE := 600.0
 
 const SPAWN := Vector3(0.0, 1.5, 6.0)
-## Death causes for die(). Add a new cause here (and its animation below)
-## when a new hazard is added.
 const DEATH_OCEAN := &"ocean"
 
 var _coins_total := 0
@@ -161,8 +159,6 @@ func _process(_delta: float) -> void:
 		die(DEATH_OCEAN)
 
 
-## Entry point for player death. Plays the animation for the given cause,
-## then shows the game-over screen.
 func die(cause: StringName) -> void:
 	if _dying or not _started:
 		return
@@ -177,7 +173,6 @@ func die(cause: StringName) -> void:
 	_game_over()
 
 
-## Ocean death: splash at the surface, a bob, then sinking under the waves.
 func _die_ocean() -> void:
 	_spawn_splash(Vector3(_player.global_position.x, OCEAN_Y + 0.15, _player.global_position.z))
 	var tween := create_tween().set_parallel(true)
@@ -193,7 +188,6 @@ func _die_ocean() -> void:
 	await tween.finished
 
 
-## One-shot burst of chunky white cubes for the ocean splash.
 func _spawn_splash(pos: Vector3) -> void:
 	var particles := GPUParticles3D.new()
 	particles.amount = 48
