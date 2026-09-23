@@ -137,6 +137,7 @@ func _run() -> void:
 	var win_label: Label = _game.get_node("UI/WinLabel")
 	_check(win_label.visible, "goal triggered victory label")
 	await _shot("05-victory")
+	win_label.visible = false
 
 	# Fall game-over: touching the ocean plays the death animation (splash,
 	# bob, sink), then the game-over screen shows.
