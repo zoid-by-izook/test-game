@@ -1,9 +1,10 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://scripts/game.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/follow_camera.gd" id="2"]
 [ext_resource type="Script" path="res://scripts/start_menu.gd" id="3"]
 [ext_resource type="Script" path="res://scripts/pause_menu.gd" id="4"]
+[ext_resource type="Script" path="res://scripts/game_over_menu.gd" id="6"]
 [ext_resource type="Sky" path="res://assets/sky/day_sky.tres" id="5"]
 
 [sub_resource type="Environment" id="env"]
@@ -231,3 +232,53 @@ theme_override_colors/font_color = Color(0.55, 0.6, 0.68, 1)
 theme_override_font_sizes/font_size = 20
 horizontal_alignment = 1
 text = "Esc / P to resume"
+
+[node name="GameOverMenu" type="Control" parent="UI"]
+visible = false
+process_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("6")
+
+[node name="Dim" type="ColorRect" parent="UI/GameOverMenu"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.12, 0.02, 0.03, 0.72)
+
+[node name="GameOverCenter" type="CenterContainer" parent="UI/GameOverMenu"]
+unique_name_in_owner = true
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBox" type="VBoxContainer" parent="UI/GameOverMenu/GameOverCenter"]
+unique_name_in_owner = true
+alignment = 1
+theme_override_constants/separation = 18
+
+[node name="Title" type="Label" parent="UI/GameOverMenu/GameOverCenter/VBox"]
+theme_override_font_sizes/font_size = 48
+horizontal_alignment = 1
+text = "GAME OVER"
+
+[node name="RetryButton" type="Button" parent="UI/GameOverMenu/GameOverCenter/VBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(300, 72)
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 32
+text = "↻  RETRY"
+
+[node name="MainMenuButton" type="Button" parent="UI/GameOverMenu/GameOverCenter/VBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(300, 72)
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 32
+text = "MAIN MENU"
