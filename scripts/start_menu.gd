@@ -37,6 +37,11 @@ const CREDITS: Array = [
 		"artist": "Kenney (kenney.nl)",
 		"license": "CC0 1.0 Universal",
 	},
+	{
+		"title": "\"Retro video game sfx - Splash\" (ocean death splash)",
+		"artist": "OwlStorm (Ashe Kirk, freesound.org)",
+		"license": "CC0 1.0 Universal",
+	},
 ]
 
 

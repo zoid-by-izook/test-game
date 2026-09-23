@@ -41,8 +41,7 @@ const OCEAN_Y := -1.0
 const OCEAN_SIZE := 600.0
 
 const SPAWN := Vector3(0.0, 1.5, 6.0)
-## Just below the ocean surface: touching the water respawns the player.
-const KILL_Y := -2.0
+const DEATH_OCEAN := &"ocean"
 
 var _coins_total := 0
 var _coins_got := 0
@@ -52,6 +51,7 @@ var _top_layer_cubes: Array[Vector2] = []
 var _shore_sdf: ImageTexture
 var _player: PlatformerPlayer
 var _started := false
+var _dying := false
 ## Set by retry_game() before scene reload: skip the start menu and
 ## jump straight into gameplay. Static so it survives reload_current_scene().
 static var _autostart := false
@@ -155,8 +155,67 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _process(_delta: float) -> void:
-	if _started and not get_tree().paused and _player and _player.global_position.y < KILL_Y:
-		_game_over()
+	if _started and not _dying and not get_tree().paused and _player and _player.global_position.y < OCEAN_Y:
+		die(DEATH_OCEAN)
+
+
+func die(cause: StringName) -> void:
+	if _dying or not _started:
+		return
+	_dying = true
+	_player.controls_enabled = false
+	_player.set_physics_process(false)
+	_player.velocity = Vector3.ZERO
+	if cause == DEATH_OCEAN:
+		await _die_ocean()
+	else:
+		push_error("Unhandled death cause: %s" % cause)
+	_game_over()
+
+
+func _die_ocean() -> void:
+	_spawn_splash(Vector3(_player.global_position.x, OCEAN_Y + 0.15, _player.global_position.z))
+	AudioManager.play_sfx("splash")
+	var tween := create_tween().set_parallel(true)
+	tween.tween_property(_player, "global_position:y", OCEAN_Y + 0.25, 0.35).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tween.tween_property(_player, "rotation:z", 0.25, 0.35).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	await tween.finished
+	tween = create_tween().set_parallel(true)
+	tween.tween_property(_player, "global_position:y", OCEAN_Y - 0.4, 0.45).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	tween.tween_property(_player, "rotation:z", -0.15, 0.45).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	await tween.finished
+	tween = create_tween()
+	tween.tween_property(_player, "global_position:y", OCEAN_Y - 3.0, 1.0).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	await tween.finished
+
+
+func _spawn_splash(pos: Vector3) -> void:
+	var particles := GPUParticles3D.new()
+	particles.amount = 48
+	particles.lifetime = 0.8
+	particles.one_shot = true
+	particles.explosiveness = 0.9
+	var process := ParticleProcessMaterial.new()
+	process.direction = Vector3(0, 1, 0)
+	process.spread = 32.0
+	process.initial_velocity_min = 5.0
+	process.initial_velocity_max = 9.0
+	process.gravity = Vector3(0, -14, 0)
+	process.scale_min = 0.6
+	process.scale_max = 1.2
+	process.color = Color(0.92, 0.98, 1.0)
+	particles.process_material = process
+	var cube := BoxMesh.new()
+	cube.size = Vector3(0.14, 0.14, 0.14)
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.92, 0.98, 1.0)
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	cube.material = mat
+	particles.draw_pass_1 = cube
+	particles.position = pos
+	add_child(particles)
+	particles.finished.connect(particles.queue_free)
+	particles.emitting = true
 
 
 func _game_over() -> void:
