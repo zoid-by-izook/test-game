@@ -183,6 +183,7 @@ func _die_ocean() -> void:
 	var tween := create_tween().set_parallel(true)
 	tween.tween_property(_player, "global_position:y", OCEAN_Y + 0.25, 0.35).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	tween.tween_property(_player, "rotation:z", 0.25, 0.35).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	await tween.finished
 	tween = create_tween().set_parallel(true)
 	tween.tween_property(_player, "global_position:y", OCEAN_Y - 0.4, 0.45).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	tween.tween_property(_player, "rotation:z", -0.15, 0.45).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
