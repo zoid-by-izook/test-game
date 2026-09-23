@@ -1,7 +1,7 @@
 extends Node3D
 ## Root of the graybox level. Builds the island, animated ocean, floating platforms,
 ## coins, and goal from code; spawns the player; tracks the coin counter;
-## shows the win label; respawns the player when they fall off the world.
+## shows the win screen; respawns the player when they fall off the world.
 
 const PLAYER_SCENE: PackedScene = preload("res://scenes/player.tscn")
 const COIN_SCENE: PackedScene = preload("res://scenes/coin.tscn")
@@ -57,7 +57,7 @@ var _dying := false
 static var _autostart := false
 
 @onready var _coin_label: Label = $UI/CoinLabel
-@onready var _win_label: Label = $UI/WinLabel
+@onready var _win_menu: WinMenu = $UI/WinMenu
 @onready var _camera: Camera3D = $Camera3D
 @onready var _menu: StartMenu = $UI/StartMenu
 @onready var _pause_menu: PauseMenu = $UI/PauseMenu
@@ -76,6 +76,8 @@ func _ready() -> void:
 	_pause_menu.restart_requested.connect(restart_game)
 	_game_over_menu.retry_requested.connect(retry_game)
 	_game_over_menu.main_menu_requested.connect(go_to_main_menu)
+	_win_menu.play_again_requested.connect(retry_game)
+	_win_menu.main_menu_requested.connect(go_to_main_menu)
 	if _autostart:
 		_autostart = false
 		start_game()
@@ -479,8 +481,10 @@ func _on_coin_collected(_coin: Coin) -> void:
 
 
 func _on_goal_reached() -> void:
-	_win_label.visible = true
 	AudioManager.play_sfx("win")
+	get_tree().paused = true
+	_win_menu.set_stats(_coins_got, _coins_total)
+	_win_menu.show_menu()
 
 
 func _update_coin_label() -> void:
