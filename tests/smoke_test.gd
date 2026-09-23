@@ -129,15 +129,19 @@ func _run() -> void:
 		_check(label.text == "Coins: 1/6", "coin collected (label='%s')" % label.text)
 		await _shot("04-coin-collected")
 
-	# Goal: drop the player onto the goal platform; the win label must appear.
+	# Goal: drop the player onto the goal platform; the win screen must appear.
+	# The win screen pauses the tree, so unpause after the screenshot or the
+	# fall game-over stage would never advance a physics frame.
 	print("SMOKE: stage victory")
 	_player.global_position = Vector3(-6.0, 7.0, -20.0)
 	_player.velocity = Vector3.ZERO
 	await _physics_frames(90)
-	var win_label: Label = _game.get_node("UI/WinLabel")
-	_check(win_label.visible, "goal triggered victory label")
+	var win_menu: Control = _game.get_node("UI/WinMenu")
+	_check(win_menu.visible, "goal triggered win screen")
+	_check(get_tree().paused, "tree paused on win screen")
 	await _shot("05-victory")
-	win_label.visible = false
+	win_menu.visible = false
+	get_tree().paused = false
 
 	# Fall game-over: touching the ocean plays the death animation (splash,
 	# bob, sink), then the game-over screen shows.
