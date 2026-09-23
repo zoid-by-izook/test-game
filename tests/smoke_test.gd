@@ -146,7 +146,11 @@ func _run() -> void:
 	print("SMOKE: stage fall-game-over")
 	_player.global_position = Vector3(40.0, 2.0, 6.0)
 	_player.velocity = Vector3.ZERO
-	await _physics_frames(20)
+	var waited := 0
+	while not _game._dying and waited < 120:
+		await _physics_frames(1)
+		waited += 1
+	_check(_game._dying, "death animation started after touching ocean")
 	_check(not _player.controls_enabled, "player controls disabled during death animation")
 	await _shot("07a-death-splash")
 	await _physics_frames(150)
