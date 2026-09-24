@@ -42,6 +42,11 @@ const CREDITS: Array = [
 		"artist": "OwlStorm (Ashe Kirk, freesound.org)",
 		"license": "CC0 1.0 Universal",
 	},
+	{
+		"title": "Fredoka (UI font)",
+		"artist": "Milena Brandão, Hafontia",
+		"license": "SIL Open Font License 1.1",
+	},
 ]
 
 

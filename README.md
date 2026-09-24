@@ -65,6 +65,8 @@ GitHub Actions.** After that, pushes to `main` go live on their own.
   — CC0 1.0 Universal
 - **"Retro video game sfx - Splash"** (ocean death splash) by [OwlStorm](https://freesound.org/people/OwlStorm/sounds/404763/)
   — CC0 1.0 Universal
+- [**Fredoka**](https://github.com/hafontia/Fredoka-One) (UI font) by
+  Milena Brandão, Hafontia — [SIL Open Font License 1.1](https://scripts.sil.org/OFL)
 
 As licensed assets are added, each artist, asset, and license will be
 credited here, in the in-game credits menu (Credits button on the title
