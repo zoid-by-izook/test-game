@@ -101,7 +101,7 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(300, 84)
 size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 36
-text = "▶  START"
+text = "START"
 
 [node name="AudioButton" type="Button" parent="UI/StartMenu/Center/MainView"]
 unique_name_in_owner = true
@@ -155,7 +155,7 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(300, 64)
 size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 28
-text = "←  BACK"
+text = "BACK"
 
 [node name="PauseMenu" type="Control" parent="UI"]
 visible = false
@@ -198,14 +198,14 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(300, 72)
 size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 32
-text = "▶  RESUME"
+text = "RESUME"
 
 [node name="RestartButton" type="Button" parent="UI/PauseMenu/PauseCenter/VBox"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(300, 72)
 size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 32
-text = "↻  RESTART"
+text = "RESTART"
 
 [node name="PauseAudioButton" type="Button" parent="UI/PauseMenu/PauseCenter/VBox"]
 unique_name_in_owner = true
@@ -261,7 +261,7 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(300, 72)
 size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 32
-text = "↻  RETRY"
+text = "RETRY"
 
 [node name="MainMenuButton" type="Button" parent="UI/GameOverMenu/GameOverCenter/VBox"]
 unique_name_in_owner = true
@@ -317,7 +317,7 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(300, 72)
 size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 32
-text = "↻  PLAY AGAIN"
+text = "PLAY AGAIN"
 
 [node name="WinMainMenuButton" type="Button" parent="UI/WinMenu/WinCenter/WinVBox"]
 unique_name_in_owner = true
