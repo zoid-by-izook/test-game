@@ -1,7 +1,8 @@
 name: Auto-close outsider issues
 
 # The issue tracker is the maintainers' personal roadmap: only Zoid
-# (zoid-by-izook) and Isaac (Izook) open issues here. Anything else gets
+# (zoid-by-izook), Isaac (Izook), and the approved machine-user
+# collaborators (e.g. zoidela-by-my) open issues here. Anything else gets
 # auto-closed with a friendly note.
 on:
   issues:
@@ -19,9 +20,9 @@ jobs:
           AUTHOR: ${{ github.event.issue.user.login }}
           ISSUE: ${{ github.event.issue.number }}
         run: |
-          if [ "$AUTHOR" = "zoid-by-izook" ] || [ "$AUTHOR" = "Izook" ]; then
+          if [ "$AUTHOR" = "zoid-by-izook" ] || [ "$AUTHOR" = "Izook" ] || [ "$AUTHOR" = "zoidela-by-my" ]; then
             echo "Issue #$ISSUE opened by $AUTHOR — leaving open."
             exit 0
           fi
           gh issue close "$ISSUE" --reason "not planned" --comment \
-            "Auto-closing: this issue tracker is the maintainers' personal roadmap, so only @zoid-by-izook and @Izook open issues here. Thanks for understanding!"
+            "Auto-closing: this issue tracker is the maintainers' personal roadmap, so only @zoid-by-izook, @Izook, and approved collaborators open issues here. Thanks for understanding!"
