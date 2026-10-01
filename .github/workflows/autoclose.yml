@@ -1,7 +1,8 @@
 name: Auto-close outside contributions
 
-# Until the game is ready for outside eyes, only the owner (and Isaac) may
-# open PRs. Anything else is closed automatically with a friendly note.
+# Until the game is ready for outside eyes, only the owner, Isaac, and the
+# approved machine-user collaborators may open PRs. Anything else is closed
+# automatically with a friendly note.
 #
 # pull_request_target runs this workflow from the base branch, so it applies
 # even to PRs opened from forks. No code is checked out, so untrusted PR
@@ -18,7 +19,7 @@ jobs:
   close-outside-prs:
     name: Close PRs from non-collaborators
     runs-on: ubuntu-latest
-    if: github.actor != 'zoid-by-izook' && github.actor != 'Izook'
+    if: github.actor != 'zoid-by-izook' && github.actor != 'Izook' && github.actor != 'zoidela-by-my'
     steps:
       - name: Close with an explanation
         env:
