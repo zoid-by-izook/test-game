@@ -19,6 +19,14 @@ var controls_enabled := false
 
 var _was_on_floor := true
 
+## Emote overlay: cosmetic only, never touches movement or physics.
+## Keys 1-4 play the Quaternius Wave / Yes / No / Duck clips.
+const EMOTE_ACTIONS: Array[String] = ["emote_1", "emote_2", "emote_3", "emote_4"]
+const EMOTE_CLIPS: Array[String] = ["Wave", "Yes", "No", "Duck"]
+
+## Currently playing emote clip; empty when no emote is active.
+var _emote_clip := ""
+
 
 func _physics_process(delta: float) -> void:
 	if not is_on_floor():
@@ -46,12 +54,36 @@ func _physics_process(delta: float) -> void:
 	if not _was_on_floor and is_on_floor():
 		AudioManager.play_sfx("land")
 	_was_on_floor = is_on_floor()
+	_update_emote()
 	_update_animation(input_dir)
+
+
+## Starts an emote when keys 1-4 are pressed. Cosmetic only; the
+## emote owns the AnimationPlayer until it finishes or is cancelled.
+func _update_emote() -> void:
+	if not controls_enabled:
+		return
+	for i in EMOTE_ACTIONS.size():
+		if Input.is_action_just_pressed(EMOTE_ACTIONS[i]):
+			_emote_clip = EMOTE_CLIPS[i]
+			return
 
 
 ## Picks the character clip from the movement state. Guards on
 ## current_animation so clips aren't restarted every physics frame.
 func _update_animation(input_dir: Vector2) -> void:
+	# While an emote is active it owns the AnimationPlayer, so the movement
+	# logic below never fights it. Any movement or jump input cancels the
+	# emote instantly; a finished clip releases it back to movement.
+	if _emote_clip != "":
+		if input_dir.length() > 0.01 \
+				or (controls_enabled and Input.is_action_just_pressed("jump")) \
+				or not _anim.is_playing():
+			_emote_clip = ""
+		else:
+			if _anim.current_animation != _emote_clip:
+				_anim.play(_emote_clip)
+			return
 	var next_anim := "Idle"
 	if not is_on_floor():
 		next_anim = "Jump" if velocity.y > 1.0 else "Jump_Idle"
